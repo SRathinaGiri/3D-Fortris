@@ -43,7 +43,7 @@ const createPiece = (shape = randomShape()) => ({
   position: spawnPosition(shape),
 });
 
-const createQueue = () => Array.from({ length: QUEUE_LENGTH }, () => createPiece());
+const createQueue = (length = QUEUE_LENGTH) => Array.from({ length }, () => createPiece());
 
 const mergePiece = (grid, piece) => {
   const newGrid = grid.map((layer) => layer.map((row) => row.slice()));
@@ -61,9 +61,9 @@ const mergePiece = (grid, piece) => {
 export class GameState {
   constructor() {
     this.grid = createGrid();
-    this.activePiece = createPiece();
-    this.upcomingPieces = createQueue();
-    this.nextPiece = this.upcomingPieces[0];
+    this.activePiece = null;
+    this.upcomingPieces = [];
+    this.nextPiece = null;
     this.score = 0;
     this.level = 1;
     this.linesCleared = 0;
@@ -79,7 +79,21 @@ export class GameState {
     this.messageTimer = null;
     this.keyHandler = (event) => this.handleKey(event);
     this.subscribers = new Set();
+    this.initializePieces();
     this.loadProgress();
+  }
+
+  initializePieces() {
+    this.upcomingPieces = createQueue(QUEUE_LENGTH + 1);
+    this.activePiece = this.upcomingPieces.shift() ?? createPiece();
+    this.refillQueue();
+  }
+
+  refillQueue() {
+    while (this.upcomingPieces.length < QUEUE_LENGTH) {
+      this.upcomingPieces.push(createPiece());
+    }
+    this.nextPiece = this.upcomingPieces[0] ?? null;
   }
 
   loadProgress() {
@@ -184,9 +198,7 @@ export class GameState {
 
   resetGame() {
     this.grid = createGrid();
-    this.activePiece = createPiece();
-    this.upcomingPieces = createQueue();
-    this.nextPiece = this.upcomingPieces[0];
+    this.initializePieces();
     this.score = 0;
     this.level = 1;
     this.linesCleared = 0;
@@ -323,11 +335,10 @@ export class GameState {
     }
 
     if (!this.upcomingPieces || !this.upcomingPieces.length) {
-      this.upcomingPieces = createQueue();
+      this.upcomingPieces = createQueue(QUEUE_LENGTH + 1);
     }
     const candidate = this.upcomingPieces.shift() || createPiece();
-    this.upcomingPieces.push(createPiece());
-    this.nextPiece = this.upcomingPieces[0];
+    this.refillQueue();
     if (!this.canPlace(candidate)) {
       this.activePiece = null;
       this.gameOver = true;

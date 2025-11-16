@@ -262,6 +262,69 @@ export class GameRenderer {
     return grid;
   }
 
+  bindPointerControls() {
+    if (!this.renderer) return;
+    const canvas = this.renderer.domElement;
+    if (!canvas) return;
+
+    this.pointerHandlers.down = (event) => {
+      event.preventDefault();
+      this.pointerState.dragging = true;
+      this.pointerState.lastX = event.clientX;
+      this.pointerState.lastY = event.clientY;
+    };
+
+    this.pointerHandlers.move = (event) => {
+      if (!this.pointerState.dragging) return;
+      const dx = event.clientX - this.pointerState.lastX;
+      const dy = event.clientY - this.pointerState.lastY;
+      this.cameraOrbit.theta -= dx * 0.004;
+      this.cameraOrbit.phi -= dy * 0.004;
+      this.pointerState.lastX = event.clientX;
+      this.pointerState.lastY = event.clientY;
+      this.updateCameraOrbit(true);
+    };
+
+    this.pointerHandlers.up = () => {
+      this.pointerState.dragging = false;
+    };
+
+    this.pointerHandlers.wheel = (event) => {
+      event.preventDefault();
+      this.cameraOrbit.radius += event.deltaY * 0.01;
+      this.updateCameraOrbit(true);
+    };
+
+    canvas.addEventListener('pointerdown', this.pointerHandlers.down);
+    window.addEventListener('pointermove', this.pointerHandlers.move);
+    window.addEventListener('pointerup', this.pointerHandlers.up);
+    window.addEventListener('pointercancel', this.pointerHandlers.up);
+    canvas.addEventListener('wheel', this.pointerHandlers.wheel, { passive: false });
+  }
+
+  updateCameraOrbit() {
+    if (!this.perspectiveCamera) return;
+    const phi = THREE.MathUtils.clamp(this.cameraOrbit.phi, 0.3, Math.PI - 0.3);
+    const radius = THREE.MathUtils.clamp(this.cameraOrbit.radius, 7, 28);
+    this.cameraOrbit.phi = phi;
+    this.cameraOrbit.radius = radius;
+    const sinPhi = Math.sin(phi);
+    const x = radius * sinPhi * Math.cos(this.cameraOrbit.theta);
+    const z = radius * sinPhi * Math.sin(this.cameraOrbit.theta);
+    const y = radius * Math.cos(phi) + 2;
+    this.perspectiveCamera.position.set(x, y, z);
+    this.perspectiveCamera.lookAt(0, 0, 0);
+  }
+
+  animateOrbit() {
+    if (!this.pointerState.dragging) {
+      this.cameraOrbit.theta += this.autoRotateSpeed;
+    }
+    if (this.viewType !== 'top') {
+      this.updateCameraOrbit();
+    }
+  }
+
   resize() {
     if (!this.renderer || !this.container) return;
     const { clientWidth, clientHeight } = this.container;
