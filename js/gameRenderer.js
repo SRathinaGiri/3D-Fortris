@@ -1,8 +1,9 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { AnaglyphEffect } from 'https://unpkg.com/three@0.160.0/examples/jsm/effects/AnaglyphEffect.js';
+import * as THREE from '../vendor/three/three.module.js';
+import { AnaglyphEffect } from '../vendor/three/AnaglyphEffect.js';
 import { BOARD_SIZE } from './constants.js';
 
 const BLOCK_SIZE = 0.9;
+const LANDING_COLOR = '#38bdf8';
 
 export class GameRenderer {
   constructor(container) {
@@ -12,6 +13,14 @@ export class GameRenderer {
     this.materialCache = { geometry: new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE) };
     this.frameHandle = null;
     this.handleResize = () => this.resize();
+    this.floorY = -(BOARD_SIZE.height / 2) * BLOCK_SIZE - 0.5;
+    this.landingGeometry = new THREE.CircleGeometry(0.3, 32);
+    this.landingMaterial = new THREE.MeshBasicMaterial({
+      color: LANDING_COLOR,
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide,
+    });
     this.init();
   }
 
@@ -53,14 +62,21 @@ export class GameRenderer {
     this.scene.add(ambient, keyLight, rimLight);
 
     const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(BOARD_SIZE.width * BLOCK_SIZE + 2, 0.2, BOARD_SIZE.depth * BLOCK_SIZE + 2),
-      new THREE.MeshStandardMaterial({ color: '#0f172a' }),
+      new THREE.PlaneGeometry(BOARD_SIZE.width * BLOCK_SIZE + 1.5, BOARD_SIZE.depth * BLOCK_SIZE + 1.5),
+      new THREE.MeshStandardMaterial({ color: '#0f172a', metalness: 0.2, roughness: 0.85, side: THREE.DoubleSide }),
     );
-    floor.position.y = -(BOARD_SIZE.height / 2) * BLOCK_SIZE - 0.6;
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = this.floorY - 0.05;
     this.scene.add(floor);
+
+    this.floorGrid = this.createFloorGrid();
+    this.scene.add(this.floorGrid);
 
     this.blockGroup = new THREE.Group();
     this.scene.add(this.blockGroup);
+
+    this.landingGroup = new THREE.Group();
+    this.scene.add(this.landingGroup);
 
     window.addEventListener('resize', this.handleResize);
     this.renderLoop = this.renderLoop.bind(this);
@@ -118,7 +134,22 @@ export class GameRenderer {
       });
     });
 
+    let landingPiece = null;
+    let landingFootprint = [];
     if (activePiece) {
+      landingPiece = this.computeLandingPiece(activePiece, grid);
+      if (landingPiece) {
+        landingFootprint = this.getLandingFootprint(landingPiece);
+        if (landingPiece.position.y !== activePiece.position.y) {
+          landingPiece.cells.forEach(([cx, cy, cz]) => {
+            const x = landingPiece.position.x + cx;
+            const y = landingPiece.position.y + cy;
+            const z = landingPiece.position.z + cz;
+            createCube({ x, y, z }, LANDING_COLOR, { transparent: true, opacity: 0.18 });
+          });
+        }
+      }
+
       activePiece.cells.forEach(([cx, cy, cz]) => {
         const x = activePiece.position.x + cx;
         const y = activePiece.position.y + cy;
@@ -126,6 +157,88 @@ export class GameRenderer {
         createCube({ x, y, z }, activePiece.color, { transparent: true, opacity: 0.45 });
       });
     }
+
+    this.renderLandingMarkers(landingFootprint);
+  }
+
+  computeLandingPiece(piece, grid) {
+    if (!piece) return null;
+    const landingPosition = { ...piece.position };
+    const canDescend = () =>
+      piece.cells.every(([cx, cy, cz]) => {
+        const x = landingPosition.x + cx;
+        const z = landingPosition.z + cz;
+        const nextY = landingPosition.y + cy - 1;
+        if (x < 0 || x >= BOARD_SIZE.width) return false;
+        if (z < 0 || z >= BOARD_SIZE.depth) return false;
+        if (nextY < 0) return false;
+        const layer = grid[nextY];
+        if (!layer) return false;
+        const row = layer[z];
+        if (!row) return false;
+        return !row[x];
+      });
+
+    while (canDescend()) {
+      landingPosition.y -= 1;
+    }
+
+    return { ...piece, position: { ...piece.position, y: landingPosition.y } };
+  }
+
+  getLandingFootprint(piece) {
+    if (!piece) return [];
+    const seen = new Set();
+    const cells = [];
+    piece.cells.forEach(([cx, _cy, cz]) => {
+      const x = piece.position.x + cx;
+      const z = piece.position.z + cz;
+      const key = `${x}:${z}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        cells.push({ x, z });
+      }
+    });
+    return cells;
+  }
+
+  renderLandingMarkers(footprint) {
+    if (!this.landingGroup) return;
+    this.landingGroup.clear();
+    if (!footprint.length) return;
+    footprint.forEach(({ x, z }) => {
+      const marker = new THREE.Mesh(this.landingGeometry, this.landingMaterial);
+      marker.rotation.x = -Math.PI / 2;
+      marker.position.set(
+        (x - BOARD_SIZE.width / 2 + 0.5) * BLOCK_SIZE,
+        this.floorY + 0.01,
+        (z - BOARD_SIZE.depth / 2 + 0.5) * BLOCK_SIZE,
+      );
+      this.landingGroup.add(marker);
+    });
+  }
+
+  createFloorGrid() {
+    const vertices = [];
+    const width = BOARD_SIZE.width;
+    const depth = BOARD_SIZE.depth;
+    for (let x = 0; x <= width; x += 1) {
+      const offsetX = (x - width / 2) * BLOCK_SIZE;
+      vertices.push(offsetX, 0, -(depth / 2) * BLOCK_SIZE);
+      vertices.push(offsetX, 0, (depth / 2) * BLOCK_SIZE);
+    }
+    for (let z = 0; z <= depth; z += 1) {
+      const offsetZ = (z - depth / 2) * BLOCK_SIZE;
+      vertices.push(-(width / 2) * BLOCK_SIZE, 0, offsetZ);
+      vertices.push((width / 2) * BLOCK_SIZE, 0, offsetZ);
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    const material = new THREE.LineBasicMaterial({ color: '#1d4ed8', transparent: true, opacity: 0.35 });
+    const grid = new THREE.LineSegments(geometry, material);
+    grid.position.y = this.floorY + 0.01;
+    return grid;
   }
 
   resize() {

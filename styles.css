@@ -79,6 +79,13 @@ button:hover {
   gap: 2rem;
 }
 
+.app__stage {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem;
+}
+
 .app__sidebar {
   display: flex;
   flex-direction: column;
@@ -183,12 +190,24 @@ input[type='range'] {
 }
 
 .game-canvas {
-  width: 100%;
-  height: 650px;
+  width: 400px;
+  height: 800px;
+  min-width: 400px;
+  min-height: 800px;
   border-radius: 1.5rem;
   overflow: hidden;
   border: 1px solid rgba(56, 189, 248, 0.25);
   background: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.25), transparent 55%), #020617;
+}
+
+@media (max-width: 900px) {
+  .app__body {
+    grid-template-columns: 1fr;
+  }
+
+  .app__stage {
+    justify-content: flex-start;
+  }
 }
 
 .panel__message {
@@ -226,9 +245,5 @@ input[type='range'] {
 
   .app__header {
     flex-direction: column;
-  }
-
-  .game-canvas {
-    height: 460px;
   }
 }

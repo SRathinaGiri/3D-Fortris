@@ -27,13 +27,18 @@ const rotatePiece = (piece, axis) => ({
 
 const randomShape = () => SHAPES[Math.floor(Math.random() * SHAPES.length)];
 
+const spawnPosition = (shape) => {
+  const highestOffset = shape.cells.reduce((max, [, y]) => Math.max(max, y), 0);
+  return {
+    x: Math.floor(BOARD_SIZE.width / 2),
+    y: BOARD_SIZE.height - 1 - highestOffset,
+    z: Math.floor(BOARD_SIZE.depth / 2),
+  };
+};
+
 const createPiece = (shape = randomShape()) => ({
   ...shape,
-  position: {
-    x: Math.floor(BOARD_SIZE.width / 2),
-    y: BOARD_SIZE.height - 1,
-    z: Math.floor(BOARD_SIZE.depth / 2),
-  },
+  position: spawnPosition(shape),
 });
 
 const mergePiece = (grid, piece) => {
