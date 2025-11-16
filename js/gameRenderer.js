@@ -38,9 +38,6 @@ export class GameRenderer {
     this.pointerHandlers = {};
     this.autoRotateSpeed = 0.0009;
     this.autoRotateEnabled = true;
-    this.ready = false;
-    this.errorMessage = '';
-    this.fallbackEl = null;
     this.init();
   }
 
@@ -356,16 +353,12 @@ export class GameRenderer {
   }
 
   animateOrbit() {
-    if (this.autoRotateEnabled && !this.pointerState.dragging) {
+    if (!this.pointerState.dragging) {
       this.cameraOrbit.theta += this.autoRotateSpeed;
     }
     if (this.viewType !== 'top') {
       this.updateCameraOrbit();
     }
-  }
-
-  setAutoRotate(enabled) {
-    this.autoRotateEnabled = Boolean(enabled);
   }
 
   resize() {
