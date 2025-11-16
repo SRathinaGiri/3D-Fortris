@@ -205,6 +205,31 @@ label {
   color: #94a3b8;
 }
 
+label.toggle {
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0.25rem 0 1rem;
+}
+
+label.toggle input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+  accent-color: #38bdf8;
+}
+
+label.toggle span {
+  display: flex;
+  flex-direction: column;
+  color: #e2e8f0;
+  gap: 0.2rem;
+}
+
+label.toggle span small {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
 select,
 input[type='range'] {
   width: 100%;

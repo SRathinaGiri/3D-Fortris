@@ -19,6 +19,7 @@ export function initUI(gameState) {
   const fovValue = document.querySelector('[data-fov-value]');
   const opacityInput = document.getElementById('cubeOpacity');
   const opacityValue = document.querySelector('[data-opacity-value]');
+  const autoRotateToggle = document.getElementById('autoRotate');
   const stats = {
     score: document.querySelector('[data-stat="score"]'),
     level: document.querySelector('[data-stat="level"]'),
@@ -34,6 +35,7 @@ export function initUI(gameState) {
   const focusHandler = (event) => gameState.updateStereoSettings({ focusDepth: Number(event.target.value) });
   const fovHandler = (event) => gameState.updateStereoSettings({ fov: Number(event.target.value) });
   const opacityHandler = (event) => gameState.updateOpacity(Number(event.target.value));
+  const autoRotateHandler = (event) => renderer.setAutoRotate(event.target.checked);
 
   pauseButton.addEventListener('click', pauseHandler);
   restartButton.addEventListener('click', restartHandler);
@@ -42,6 +44,44 @@ export function initUI(gameState) {
   focusDepthInput.addEventListener('input', focusHandler);
   fovInput.addEventListener('input', fovHandler);
   opacityInput.addEventListener('input', opacityHandler);
+  if (autoRotateToggle) {
+    autoRotateToggle.addEventListener('change', autoRotateHandler);
+    renderer.setAutoRotate(autoRotateToggle.checked);
+  }
+
+  const renderPreviewGrid = (piece) => {
+    if (!piece?.cells?.length) return '';
+    const xs = piece.cells.map(([cx]) => cx);
+    const zs = piece.cells.map(([, , cz]) => cz);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minZ = Math.min(...zs);
+    const maxZ = Math.max(...zs);
+    const width = Math.max(1, maxX - minX + 1);
+    const height = Math.max(1, maxZ - minZ + 1);
+    const offsetX = Math.floor((PREVIEW_GRID_SIZE - width) / 2);
+    const offsetZ = Math.floor((PREVIEW_GRID_SIZE - height) / 2);
+    const filled = new Set();
+    piece.cells.forEach(([cx, _cy, cz]) => {
+      const col = cx - minX + offsetX;
+      const row = cz - minZ + offsetZ;
+      if (col >= 0 && col < PREVIEW_GRID_SIZE && row >= 0 && row < PREVIEW_GRID_SIZE) {
+        filled.add(`${col}:${row}`);
+      }
+    });
+    const cells = Array.from({ length: PREVIEW_GRID_SIZE * PREVIEW_GRID_SIZE }, (_, idx) => {
+      const col = idx % PREVIEW_GRID_SIZE;
+      const row = Math.floor(idx / PREVIEW_GRID_SIZE);
+      const key = `${col}:${row}`;
+      const filledClass = filled.has(key) ? ' piece-preview__cell--filled' : '';
+      return `<span class="piece-preview__cell${filledClass}"></span>`;
+    }).join('');
+    return `
+      <div class="piece-preview__grid" style="--cols: ${PREVIEW_GRID_SIZE}; --rows: ${PREVIEW_GRID_SIZE};">
+        ${cells}
+      </div>
+    `;
+  };
 
   const renderPreviewGrid = (piece) => {
     if (!piece?.cells?.length) return '';
@@ -137,6 +177,9 @@ export function initUI(gameState) {
     focusDepthInput.removeEventListener('input', focusHandler);
     fovInput.removeEventListener('input', fovHandler);
     opacityInput.removeEventListener('input', opacityHandler);
+    if (autoRotateToggle) {
+      autoRotateToggle.removeEventListener('change', autoRotateHandler);
+    }
     renderer.destroy();
   };
 

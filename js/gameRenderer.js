@@ -26,7 +26,8 @@ export class GameRenderer {
     this.cameraOrbit = { theta: Math.PI / 4, phi: 1.05, radius: 18 };
     this.pointerState = { dragging: false, lastX: 0, lastY: 0 };
     this.pointerHandlers = {};
-    this.autoRotateSpeed = 0.0025;
+    this.autoRotateSpeed = 0.0009;
+    this.autoRotateEnabled = true;
     this.init();
   }
 

@@ -1,6 +1,6 @@
 export const BOARD_SIZE = {
-  width: 5,
-  depth: 5,
+  width: 10,
+  depth: 10,
   height: 20,
 };
 
