@@ -1,5 +1,7 @@
 import { BOARD_SIZE, STORAGE_KEY, SHAPES } from './constants.js';
 
+const QUEUE_LENGTH = 3;
+
 const createLayer = () => Array.from(
   { length: BOARD_SIZE.depth },
   () => Array.from({ length: BOARD_SIZE.width }, () => null),
@@ -41,6 +43,8 @@ const createPiece = (shape = randomShape()) => ({
   position: spawnPosition(shape),
 });
 
+const createQueue = () => Array.from({ length: QUEUE_LENGTH }, () => createPiece());
+
 const mergePiece = (grid, piece) => {
   const newGrid = grid.map((layer) => layer.map((row) => row.slice()));
   piece.cells.forEach(([cx, cy, cz]) => {
@@ -58,12 +62,14 @@ export class GameState {
   constructor() {
     this.grid = createGrid();
     this.activePiece = createPiece();
-    this.nextPiece = createPiece();
+    this.upcomingPieces = createQueue();
+    this.nextPiece = this.upcomingPieces[0];
     this.score = 0;
     this.level = 1;
     this.linesCleared = 0;
     this.viewType = 'perspective';
     this.stereoSettings = { eyeDistance: 0.065, focusDepth: 5, fov: 60 };
+    this.cubeOpacity = 0.85;
     this.isPaused = false;
     this.gameOver = false;
     this.message = '';
@@ -113,11 +119,13 @@ export class GameState {
       grid: this.grid,
       activePiece: this.activePiece,
       nextPiece: this.nextPiece,
+      nextQueue: this.upcomingPieces,
       score: this.score,
       level: this.level,
       linesCleared: this.linesCleared,
       viewType: this.viewType,
       stereoSettings: this.stereoSettings,
+      cubeOpacity: this.cubeOpacity,
       isPaused: this.isPaused,
       message: this.message,
       clearingLayers: this.clearingLayers,
@@ -177,7 +185,8 @@ export class GameState {
   resetGame() {
     this.grid = createGrid();
     this.activePiece = createPiece();
-    this.nextPiece = createPiece();
+    this.upcomingPieces = createQueue();
+    this.nextPiece = this.upcomingPieces[0];
     this.score = 0;
     this.level = 1;
     this.linesCleared = 0;
@@ -203,6 +212,12 @@ export class GameState {
 
   updateStereoSettings(partial) {
     this.stereoSettings = { ...this.stereoSettings, ...partial };
+    this.notify();
+  }
+
+  updateOpacity(value) {
+    const clamped = Math.max(0.2, Math.min(1, Number.isFinite(value) ? value : this.cubeOpacity));
+    this.cubeOpacity = clamped;
     this.notify();
   }
 
@@ -307,8 +322,12 @@ export class GameState {
       this.setMessage('Perfect clear!', 2000);
     }
 
-    const candidate = this.nextPiece;
-    this.nextPiece = createPiece();
+    if (!this.upcomingPieces || !this.upcomingPieces.length) {
+      this.upcomingPieces = createQueue();
+    }
+    const candidate = this.upcomingPieces.shift() || createPiece();
+    this.upcomingPieces.push(createPiece());
+    this.nextPiece = this.upcomingPieces[0];
     if (!this.canPlace(candidate)) {
       this.activePiece = null;
       this.gameOver = true;

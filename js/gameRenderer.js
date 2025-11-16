@@ -21,6 +21,12 @@ export class GameRenderer {
       opacity: 0.45,
       side: THREE.DoubleSide,
     });
+    this.cubeOpacity = 1;
+    this.isStereoWide = false;
+    this.cameraOrbit = { theta: Math.PI / 4, phi: 1.05, radius: 18 };
+    this.pointerState = { dragging: false, lastX: 0, lastY: 0 };
+    this.pointerHandlers = {};
+    this.autoRotateSpeed = 0.0025;
     this.init();
   }
 
@@ -33,10 +39,12 @@ export class GameRenderer {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(clientWidth, clientHeight);
     this.container.appendChild(this.renderer.domElement);
+    this.bindPointerControls();
 
     this.perspectiveCamera = new THREE.PerspectiveCamera(60, clientWidth / clientHeight, 0.1, 100);
     this.perspectiveCamera.position.set(10, 12, 14);
     this.perspectiveCamera.lookAt(0, 0, 0);
+    this.updateCameraOrbit(true);
 
     const orthoSize = 10;
     this.orthoCamera = new THREE.OrthographicCamera(
@@ -86,6 +94,13 @@ export class GameRenderer {
   update(state) {
     this.viewType = state.viewType;
     this.stereoSettings = state.stereoSettings;
+    this.cubeOpacity = state.cubeOpacity ?? 1;
+    const requiresWideCanvas = this.viewType === 'cross' || this.viewType === 'parallel';
+    if (this.container && this.isStereoWide !== requiresWideCanvas) {
+      this.isStereoWide = requiresWideCanvas;
+      this.container.classList.toggle('game-canvas--stereo', requiresWideCanvas);
+      this.resize();
+    }
     this.populateBlocks(state.grid, state.activePiece, state.clearingLayers);
   }
 
@@ -123,12 +138,18 @@ export class GameRenderer {
       this.blockGroup.add(mesh);
     };
 
+    const lockedOpacity = Math.max(0.2, Math.min(1, this.cubeOpacity ?? 1));
+    const lockedTransparent = lockedOpacity < 1;
     grid.forEach((layer, y) => {
       layer.forEach((row, z) => {
         row.forEach((cell, x) => {
           if (cell) {
             const highlight = clearingLayers.includes(y);
-            createCube({ x, y, z }, cell.color, highlight ? { emissive: '#f472b6' } : {});
+            const options = { transparent: lockedTransparent, opacity: lockedOpacity };
+            if (highlight) {
+              options.emissive = '#f472b6';
+            }
+            createCube({ x, y, z }, cell.color, options);
           }
         });
       });
@@ -252,6 +273,7 @@ export class GameRenderer {
 
   renderLoop() {
     this.frameHandle = requestAnimationFrame(this.renderLoop);
+    this.animateOrbit();
     this.draw();
   }
 
@@ -310,6 +332,13 @@ export class GameRenderer {
   destroy() {
     cancelAnimationFrame(this.frameHandle);
     window.removeEventListener('resize', this.handleResize);
+    if (this.renderer && this.renderer.domElement) {
+      this.renderer.domElement.removeEventListener('pointerdown', this.pointerHandlers.down);
+      this.renderer.domElement.removeEventListener('wheel', this.pointerHandlers.wheel);
+    }
+    window.removeEventListener('pointermove', this.pointerHandlers.move);
+    window.removeEventListener('pointerup', this.pointerHandlers.up);
+    window.removeEventListener('pointercancel', this.pointerHandlers.up);
     if (this.renderer) {
       this.renderer.dispose();
       if (this.renderer.domElement && this.renderer.domElement.parentNode === this.container) {

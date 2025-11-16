@@ -41,6 +41,10 @@
               </div>
             </dl>
             <div class="next-piece">
+              <h4>Next Pieces</h4>
+              <p class="next-piece__hint">Always plan three steps ahead.</p>
+              <div class="piece-preview__list" data-next-piece>
+                <p>No pieces queued</p>
               <h4>Next Piece</h4>
               <div class="piece-preview" data-next-piece>
                 <p>No piece queued</p>
@@ -72,6 +76,12 @@
               <option value="anaglyph">Anaglyph View</option>
               <option value="stereo">Stereo 3D</option>
             </select>
+
+            <label for="cubeOpacity">
+              Cube opacity
+              <span data-opacity-value>100%</span>
+            </label>
+            <input id="cubeOpacity" type="range" min="0.2" max="1" step="0.05" value="0.85" />
 
             <div class="stereo-grid" data-stereo-grid hidden>
               <label for="eyeDistance">

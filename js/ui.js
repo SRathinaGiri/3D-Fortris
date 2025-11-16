@@ -15,6 +15,8 @@ export function initUI(gameState) {
   const eyeValue = document.querySelector('[data-eye-value]');
   const focusValue = document.querySelector('[data-focus-value]');
   const fovValue = document.querySelector('[data-fov-value]');
+  const opacityInput = document.getElementById('cubeOpacity');
+  const opacityValue = document.querySelector('[data-opacity-value]');
   const stats = {
     score: document.querySelector('[data-stat="score"]'),
     level: document.querySelector('[data-stat="level"]'),
@@ -29,6 +31,7 @@ export function initUI(gameState) {
   const eyeHandler = (event) => gameState.updateStereoSettings({ eyeDistance: Number(event.target.value) });
   const focusHandler = (event) => gameState.updateStereoSettings({ focusDepth: Number(event.target.value) });
   const fovHandler = (event) => gameState.updateStereoSettings({ fov: Number(event.target.value) });
+  const opacityHandler = (event) => gameState.updateOpacity(Number(event.target.value));
 
   pauseButton.addEventListener('click', pauseHandler);
   restartButton.addEventListener('click', restartHandler);
@@ -36,14 +39,24 @@ export function initUI(gameState) {
   eyeDistanceInput.addEventListener('input', eyeHandler);
   focusDepthInput.addEventListener('input', focusHandler);
   fovInput.addEventListener('input', fovHandler);
+  opacityInput.addEventListener('input', opacityHandler);
 
-  const renderNextPiece = (piece) => {
-    if (!piece) {
-      nextPieceContainer.innerHTML = '<p>No piece queued</p>';
+  const renderNextPieces = (queue = []) => {
+    if (!queue.length) {
+      nextPieceContainer.innerHTML = '<p>No pieces queued</p>';
       return;
     }
-    nextPieceContainer.innerHTML = piece.cells
-      .map(() => '<span>■</span>')
+    nextPieceContainer.innerHTML = queue
+      .map(
+        (piece, index) => `
+          <article class="piece-preview__item">
+            <p class="piece-preview__title">+${index + 1}</p>
+            <div class="piece-preview" style="color: ${piece.color}">
+              ${piece.cells.map(() => '<span>■</span>').join('')}
+            </div>
+          </article>
+        `,
+      )
       .join('');
   };
 
@@ -59,7 +72,7 @@ export function initUI(gameState) {
     const progressText = toNext === 0 ? 'Level up imminent!' : `${toNext} layers to next level`;
     progressLabel.textContent = `Level ${state.level} • ${progressText}`;
 
-    renderNextPiece(state.nextPiece);
+    renderNextPieces(state.nextQueue || []);
     viewSelect.value = state.viewType;
     eyeDistanceInput.value = state.stereoSettings.eyeDistance;
     focusDepthInput.value = state.stereoSettings.focusDepth;
@@ -67,8 +80,10 @@ export function initUI(gameState) {
     eyeValue.textContent = `${state.stereoSettings.eyeDistance.toFixed(3)}m`;
     focusValue.textContent = `${state.stereoSettings.focusDepth.toFixed(1)}m`;
     fovValue.textContent = `${state.stereoSettings.fov.toFixed(0)}°`;
+    opacityInput.value = state.cubeOpacity ?? 1;
+    opacityValue.textContent = `${Math.round((state.cubeOpacity ?? 1) * 100)}%`;
 
-    if (state.viewType === 'stereo') {
+    if (['stereo', 'cross', 'parallel'].includes(state.viewType)) {
       stereoGrid.removeAttribute('hidden');
     } else {
       stereoGrid.setAttribute('hidden', 'hidden');
@@ -91,6 +106,7 @@ export function initUI(gameState) {
     eyeDistanceInput.removeEventListener('input', eyeHandler);
     focusDepthInput.removeEventListener('input', focusHandler);
     fovInput.removeEventListener('input', fovHandler);
+    opacityInput.removeEventListener('input', opacityHandler);
     renderer.destroy();
   };
 
