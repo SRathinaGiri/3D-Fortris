@@ -1,5 +1,5 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { AnaglyphEffect } from 'https://unpkg.com/three@0.160.0/examples/jsm/effects/AnaglyphEffect.js';
+import * as THREE from '../vendor/three/three.module.js';
+import { AnaglyphEffect } from '../vendor/three/AnaglyphEffect.js';
 import { BOARD_SIZE } from './constants.js';
 
 const BLOCK_SIZE = 0.9;
