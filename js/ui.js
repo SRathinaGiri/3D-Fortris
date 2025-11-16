@@ -53,25 +53,21 @@ export function initUI(gameState) {
     const maxZ = Math.max(...zs);
     const width = Math.max(1, maxX - minX + 1);
     const height = Math.max(1, maxZ - minZ + 1);
-    const offsetX = Math.floor((PREVIEW_GRID_SIZE - width) / 2);
-    const offsetZ = Math.floor((PREVIEW_GRID_SIZE - height) / 2);
     const filled = new Set();
     piece.cells.forEach(([cx, _cy, cz]) => {
-      const col = cx - minX + offsetX;
-      const row = cz - minZ + offsetZ;
-      if (col >= 0 && col < PREVIEW_GRID_SIZE && row >= 0 && row < PREVIEW_GRID_SIZE) {
-        filled.add(`${col}:${row}`);
-      }
+      const col = cx - minX;
+      const row = cz - minZ;
+      filled.add(`${col}:${row}`);
     });
-    const cells = Array.from({ length: PREVIEW_GRID_SIZE * PREVIEW_GRID_SIZE }, (_, idx) => {
-      const col = idx % PREVIEW_GRID_SIZE;
-      const row = Math.floor(idx / PREVIEW_GRID_SIZE);
+    const cells = Array.from({ length: width * height }, (_, idx) => {
+      const col = idx % width;
+      const row = Math.floor(idx / width);
       const key = `${col}:${row}`;
       const filledClass = filled.has(key) ? ' piece-preview__cell--filled' : '';
       return `<span class="piece-preview__cell${filledClass}"></span>`;
     }).join('');
     return `
-      <div class="piece-preview__grid" style="--cols: ${PREVIEW_GRID_SIZE}; --rows: ${PREVIEW_GRID_SIZE};">
+      <div class="piece-preview__grid" style="--cols: ${width}; --rows: ${height};">
         ${cells}
       </div>
     `;
