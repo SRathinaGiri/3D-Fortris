@@ -2,12 +2,126 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3DTris</title>
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div class="app">
+      <header class="app__header">
+        <div>
+          <h1>3DTris</h1>
+          <p class="app__tagline">Stack, rotate and clear entire volumes in a fully 3D Tetris experience.</p>
+        </div>
+        <div class="header__actions">
+          <button type="button" class="secondary" data-action="pause">Pause</button>
+          <button type="button" data-action="restart">Restart</button>
+        </div>
+      </header>
+
+      <main class="app__body">
+        <section class="app__sidebar">
+          <section class="panel">
+            <header>
+              <h3>Mission Briefing</h3>
+              <p>Clear complete 3D layers to keep the playfield open.</p>
+            </header>
+            <dl class="stats">
+              <div>
+                <dt>Score</dt>
+                <dd data-stat="score">0</dd>
+              </div>
+              <div>
+                <dt>Level</dt>
+                <dd data-stat="level">1</dd>
+              </div>
+              <div>
+                <dt>Cleared Layers</dt>
+                <dd data-stat="layers">0</dd>
+              </div>
+            </dl>
+            <div class="next-piece">
+              <h4>Next Piece</h4>
+              <div class="piece-preview" data-next-piece>
+                <p>No piece queued</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <header>
+              <h3>Progress</h3>
+              <p>Reach new levels every five cleared layers.</p>
+            </header>
+            <div class="progress">
+              <div class="progress__fill" data-progress-fill style="width: 0%"></div>
+            </div>
+            <p data-progress-label>Level 1 • 5 layers to next level</p>
+          </section>
+
+          <section class="panel">
+            <header>
+              <h3>Visual Settings</h3>
+            </header>
+            <label for="viewMode">View Mode</label>
+            <select id="viewMode">
+              <option value="perspective" selected>3D Perspective</option>
+              <option value="top">2D Top View</option>
+              <option value="cross">Cross View</option>
+              <option value="parallel">Parallel View</option>
+              <option value="anaglyph">Anaglyph View</option>
+              <option value="stereo">Stereo 3D</option>
+            </select>
+
+            <div class="stereo-grid" data-stereo-grid hidden>
+              <label for="eyeDistance">
+                Eye distance
+                <span data-eye-value>0.065m</span>
+              </label>
+              <input
+                id="eyeDistance"
+                type="range"
+                min="0.02"
+                max="0.12"
+                step="0.005"
+                value="0.065"
+              />
+
+              <label for="focusDepth">
+                Focus depth
+                <span data-focus-value>5.0m</span>
+              </label>
+              <input id="focusDepth" type="range" min="1" max="15" step="0.5" value="5" />
+
+              <label for="fov">
+                Field of View
+                <span data-fov-value>60°</span>
+              </label>
+              <input id="fov" type="range" min="35" max="110" value="60" />
+            </div>
+
+            <p class="panel__message" data-panel-message hidden></p>
+          </section>
+
+          <article class="tips">
+            <h3>Controls</h3>
+            <ul>
+              <li>Arrow keys: Move the falling piece</li>
+              <li>Q / E: Rotate around the X axis</li>
+              <li>W / S: Rotate around the Z axis</li>
+              <li>A / D: Rotate around the Y axis</li>
+              <li>Space: Hard drop</li>
+              <li>P: Pause / resume</li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="app__stage">
+          <div id="gameCanvas" class="game-canvas"></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./main.js"></script>
   </body>
 </html>
