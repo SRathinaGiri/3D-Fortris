@@ -1,5 +1,7 @@
 import { GameRenderer } from './gameRenderer.js';
 
+const PREVIEW_GRID_SIZE = 10;
+
 export function initUI(gameState) {
   const pauseButton = document.querySelector('[data-action="pause"]');
   const restartButton = document.querySelector('[data-action="restart"]');
