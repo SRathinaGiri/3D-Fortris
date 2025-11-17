@@ -74,6 +74,7 @@ export class GameState {
     this.gameOver = false;
     this.message = '';
     this.clearingLayers = [];
+    this.gravityEnabled = false;
     this.loopHandle = null;
     this.clearTimer = null;
     this.messageTimer = null;
@@ -170,7 +171,7 @@ export class GameState {
       clearInterval(this.loopHandle);
       this.loopHandle = null;
     }
-    if (this.isPaused || this.gameOver) return;
+    if (this.isPaused || this.gameOver || !this.gravityEnabled) return;
     this.loopHandle = setInterval(() => this.dropPiece(), this.loopDelay());
   }
 
@@ -205,6 +206,7 @@ export class GameState {
     this.gameOver = false;
     this.isPaused = false;
     this.clearingLayers = [];
+    this.gravityEnabled = false;
     this.setMessage('Fresh run engaged!', 2000);
     this.notify();
     this.scheduleLoop();
@@ -350,8 +352,19 @@ export class GameState {
     }
 
     this.activePiece = candidate;
+    this.gravityEnabled = false;
     this.notify();
     this.scheduleLoop();
+  }
+
+  releasePiece() {
+    if (!this.activePiece) return;
+    if (!this.gravityEnabled) {
+      this.gravityEnabled = true;
+      this.scheduleLoop();
+      return;
+    }
+    this.hardDrop();
   }
 
   handleKey(event) {
@@ -388,7 +401,7 @@ export class GameState {
         break;
       case ' ':
         event.preventDefault();
-        this.hardDrop();
+        this.releasePiece();
         break;
       case 'p':
         this.togglePause();

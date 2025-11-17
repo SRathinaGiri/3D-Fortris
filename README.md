@@ -21,7 +21,7 @@ npm run dev
 | Rotate X axis | `Q` / `E` |
 | Rotate Y axis | `A` / `D` |
 | Rotate Z axis | `W` / `S` |
-| Hard drop | `Space` |
+| Release piece / hard drop | `Space` (press once to let the block start falling, press again to hard drop) |
 | Pause | `P` or the pause button |
 
 ## Visual settings
