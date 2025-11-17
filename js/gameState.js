@@ -27,8 +27,6 @@ const createGrid = (boardSize) => Array.from({ length: boardSize.height }, () =>
 
 const cloneGrid = (grid) => grid.map((layer) => layer.map((row) => row.slice()));
 
-const cloneGrid = (grid) => grid.map((layer) => layer.map((row) => row.slice()));
-
 const rotateCell = ([x, y, z], axis) => {
   switch (axis) {
     case 'x':
