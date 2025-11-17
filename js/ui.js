@@ -1,6 +1,7 @@
 import { GameRenderer } from './gameRenderer.js';
 
 const PREVIEW_GRID_SIZE = 4;
+const LAYER_SUMMARY_COUNT = 5;
 
 export function initUI(gameState) {
   const pauseButton = document.querySelector('[data-action="pause"]');
@@ -20,6 +21,8 @@ export function initUI(gameState) {
   const opacityInput = document.getElementById('cubeOpacity');
   const opacityValue = document.querySelector('[data-opacity-value]');
   const autoRotateToggle = document.getElementById('autoRotate');
+  const gridSizeInput = document.getElementById('gridSize');
+  const layerTableBody = document.querySelector('[data-layer-table]');
   const stats = {
     score: document.querySelector('[data-stat="score"]'),
     level: document.querySelector('[data-stat="level"]'),
@@ -45,6 +48,7 @@ export function initUI(gameState) {
   const fovHandler = (event) => gameState.updateStereoSettings({ fov: Number(event.target.value) });
   const opacityHandler = (event) => gameState.updateOpacity(Number(event.target.value));
   const autoRotateHandler = (event) => renderer.setAutoRotate(event.target.checked);
+  const gridSizeHandler = (event) => gameState.updateBoardSize(Number(event.target.value));
 
   pauseButton.addEventListener('click', pauseHandler);
   restartButton.addEventListener('click', restartHandler);
@@ -53,6 +57,9 @@ export function initUI(gameState) {
   focusDepthInput.addEventListener('input', focusHandler);
   fovInput.addEventListener('input', fovHandler);
   opacityInput.addEventListener('input', opacityHandler);
+  if (gridSizeInput) {
+    gridSizeInput.addEventListener('change', gridSizeHandler);
+  }
   if (autoRotateToggle) {
     autoRotateToggle.addEventListener('change', autoRotateHandler);
     renderer.setAutoRotate(autoRotateToggle.checked);
@@ -109,11 +116,45 @@ export function initUI(gameState) {
       .join('');
   };
 
+  const renderLayerIntel = (grid = [], boardSize) => {
+    if (!layerTableBody || !boardSize) return;
+    const layersToShow = Math.min(boardSize.height, LAYER_SUMMARY_COUNT);
+    const totalBlocks = boardSize.width * boardSize.depth;
+    if (!layersToShow || !grid.length) {
+      layerTableBody.innerHTML = '<tr><td colspan="3">Calibrating…</td></tr>';
+      return;
+    }
+    const totalLabel = totalBlocks.toLocaleString();
+    const rows = [];
+    for (let y = 0; y < layersToShow; y += 1) {
+      const layer = grid[y] ?? [];
+      let filled = 0;
+      layer.forEach((row) => row.forEach((cell) => { if (cell) filled += 1; }));
+      const remaining = Math.max(0, totalBlocks - filled);
+      rows.push({ layerNumber: y + 1, remaining });
+    }
+    layerTableBody.innerHTML = rows
+      .map(
+        ({ layerNumber, remaining }) => `
+          <tr>
+            <td>Layer ${layerNumber}</td>
+            <td>${totalLabel}</td>
+            <td class="${remaining === 0 ? 'layer-table__done' : ''}">${remaining.toLocaleString()}</td>
+          </tr>
+        `,
+      )
+      .join('');
+  };
+
   const render = (state) => {
     pauseButton.textContent = state.isPaused ? 'Resume' : 'Pause';
     stats.score.textContent = state.score.toLocaleString();
     stats.level.textContent = state.level;
     stats.layers.textContent = state.linesCleared;
+
+    if (gridSizeInput && state.boardSize) {
+      gridSizeInput.value = state.boardSize.width;
+    }
 
     const toNext = Math.max(0, 5 - (state.linesCleared % 5));
     const filled = ((5 - toNext) / 5) * 100;
@@ -122,6 +163,7 @@ export function initUI(gameState) {
     progressLabel.textContent = `Level ${state.level} • ${progressText}`;
 
     renderNextPieces(state.nextQueue || []);
+    renderLayerIntel(state.grid, state.boardSize);
     viewSelect.value = state.viewType;
     eyeDistanceInput.value = state.stereoSettings.eyeDistance;
     focusDepthInput.value = state.stereoSettings.focusDepth;
@@ -159,6 +201,9 @@ export function initUI(gameState) {
     focusDepthInput.removeEventListener('input', focusHandler);
     fovInput.removeEventListener('input', fovHandler);
     opacityInput.removeEventListener('input', opacityHandler);
+    if (gridSizeInput) {
+      gridSizeInput.removeEventListener('change', gridSizeHandler);
+    }
     if (autoRotateToggle) {
       autoRotateToggle.removeEventListener('change', autoRotateHandler);
     }

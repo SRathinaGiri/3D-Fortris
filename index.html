@@ -133,6 +133,31 @@
 
         <section class="app__stage">
           <div id="gameCanvas" class="game-canvas"></div>
+          <aside class="panel stage__intel">
+            <header>
+              <h3>Playfield Planner</h3>
+              <p>Adjust the grid size and monitor the lowest layers.</p>
+            </header>
+            <label for="gridSize">Grid size (6 - 14)</label>
+            <input id="gridSize" type="number" min="6" max="14" value="10" step="1" />
+            <p class="layer-table__hint">Layer 1 is the bottom-most level of the arena.</p>
+            <div class="layer-table__wrapper">
+              <table class="layer-table">
+                <thead>
+                  <tr>
+                    <th>Layer number</th>
+                    <th>Total blocks</th>
+                    <th>Blocks to be filled</th>
+                  </tr>
+                </thead>
+                <tbody data-layer-table>
+                  <tr>
+                    <td colspan="3">Calibrating…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </aside>
         </section>
       </main>
     </div>

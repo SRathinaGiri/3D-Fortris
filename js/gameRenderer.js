@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three/three.module.js';
 import { AnaglyphEffect } from '../vendor/three/AnaglyphEffect.js';
-import { BOARD_SIZE } from './constants.js';
+import { DEFAULT_BOARD_SIZE } from './constants.js';
 
 const BLOCK_SIZE = 0.9;
 const LANDING_COLOR = '#38bdf8';
@@ -21,12 +21,13 @@ export class GameRenderer {
     this.container = container;
     this.viewType = 'perspective';
     this.stereoSettings = { eyeDistance: 0.065, focusDepth: 5, fov: 60 };
+    this.boardSize = { ...DEFAULT_BOARD_SIZE };
     this.materialCache = { geometry: new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE) };
     this.materialCache.edgeGeometry = new THREE.EdgesGeometry(this.materialCache.geometry);
     this.edgeMaterialCache = {};
     this.frameHandle = null;
     this.handleResize = () => this.resize();
-    this.floorY = -(BOARD_SIZE.height / 2) * BLOCK_SIZE - 0.5;
+    this.floorY = -(this.boardSize.height / 2) * BLOCK_SIZE - 0.5;
     this.landingGeometry = new THREE.CircleGeometry(0.3, 32);
     this.landingMaterial = new THREE.MeshBasicMaterial({
       color: LANDING_COLOR,
@@ -93,13 +94,16 @@ export class GameRenderer {
       rimLight.position.set(-8, 15, -8);
       this.scene.add(ambient, keyLight, rimLight);
 
-      const floor = new THREE.Mesh(
-        new THREE.PlaneGeometry(BOARD_SIZE.width * BLOCK_SIZE + 1.5, BOARD_SIZE.depth * BLOCK_SIZE + 1.5),
+      this.floorMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(
+          this.boardSize.width * BLOCK_SIZE + 1.5,
+          this.boardSize.depth * BLOCK_SIZE + 1.5,
+        ),
         new THREE.MeshStandardMaterial({ color: '#0f172a', metalness: 0.2, roughness: 0.85, side: THREE.DoubleSide }),
       );
-      floor.rotation.x = -Math.PI / 2;
-      floor.position.y = this.floorY - 0.05;
-      this.scene.add(floor);
+      this.floorMesh.rotation.x = -Math.PI / 2;
+      this.floorMesh.position.y = this.floorY - 0.05;
+      this.scene.add(this.floorMesh);
 
       this.floorGrid = this.createFloorGrid();
       this.scene.add(this.floorGrid);
@@ -126,8 +130,41 @@ export class GameRenderer {
     this.renderLoop();
   }
 
+  setBoardSize(boardSize) {
+    if (!boardSize) return;
+    const changed =
+      !this.boardSize ||
+      this.boardSize.width !== boardSize.width ||
+      this.boardSize.depth !== boardSize.depth ||
+      this.boardSize.height !== boardSize.height;
+    if (!changed) return;
+    this.boardSize = { ...this.boardSize, ...boardSize };
+    this.floorY = -(this.boardSize.height / 2) * BLOCK_SIZE - 0.5;
+    this.rebuildFloorElements();
+  }
+
+  rebuildFloorElements() {
+    if (this.floorMesh) {
+      this.floorMesh.geometry.dispose();
+      this.floorMesh.geometry = new THREE.PlaneGeometry(
+        this.boardSize.width * BLOCK_SIZE + 1.5,
+        this.boardSize.depth * BLOCK_SIZE + 1.5,
+      );
+      this.floorMesh.position.y = this.floorY - 0.05;
+    }
+    if (this.floorGrid) {
+      this.scene.remove(this.floorGrid);
+      if (this.floorGrid.geometry) {
+        this.floorGrid.geometry.dispose();
+      }
+      this.floorGrid = this.createFloorGrid();
+      this.scene.add(this.floorGrid);
+    }
+  }
+
   update(state) {
     if (!this.ready) return;
+    this.setBoardSize(state.boardSize);
     this.viewType = state.viewType;
     this.stereoSettings = state.stereoSettings;
     this.cubeOpacity = state.cubeOpacity ?? 1;
@@ -146,9 +183,9 @@ export class GameRenderer {
     const edgeGeometry = this.materialCache.edgeGeometry;
     this.blockGroup.clear();
     const offset = {
-      x: -(BOARD_SIZE.width / 2) + 0.5,
-      y: -(BOARD_SIZE.height / 2) + 0.5,
-      z: -(BOARD_SIZE.depth / 2) + 0.5,
+      x: -(this.boardSize.width / 2) + 0.5,
+      y: -(this.boardSize.height / 2) + 0.5,
+      z: -(this.boardSize.depth / 2) + 0.5,
     };
 
     const materialCache = this.materialCache;
@@ -258,8 +295,8 @@ export class GameRenderer {
         const x = landingPosition.x + cx;
         const z = landingPosition.z + cz;
         const nextY = landingPosition.y + cy - 1;
-        if (x < 0 || x >= BOARD_SIZE.width) return false;
-        if (z < 0 || z >= BOARD_SIZE.depth) return false;
+        if (x < 0 || x >= this.boardSize.width) return false;
+        if (z < 0 || z >= this.boardSize.depth) return false;
         if (nextY < 0) return false;
         const layer = grid[nextY];
         if (!layer) return false;
@@ -295,7 +332,7 @@ export class GameRenderer {
     if (supportIndex < 0) {
       return this.floorY + 0.01;
     }
-    const offsetY = -(BOARD_SIZE.height / 2) + 0.5;
+    const offsetY = -(this.boardSize.height / 2) + 0.5;
     return (supportIndex + offsetY) * BLOCK_SIZE + BLOCK_SIZE / 2 + 0.01;
   }
 
@@ -308,9 +345,9 @@ export class GameRenderer {
       marker.rotation.x = -Math.PI / 2;
       const supportSurface = this.getSupportSurfaceY(y - 1);
       marker.position.set(
-        (x - BOARD_SIZE.width / 2 + 0.5) * BLOCK_SIZE,
+        (x - this.boardSize.width / 2 + 0.5) * BLOCK_SIZE,
         supportSurface,
-        (z - BOARD_SIZE.depth / 2 + 0.5) * BLOCK_SIZE,
+        (z - this.boardSize.depth / 2 + 0.5) * BLOCK_SIZE,
       );
       this.landingGroup.add(marker);
     });
@@ -318,8 +355,8 @@ export class GameRenderer {
 
   createFloorGrid() {
     const vertices = [];
-    const width = BOARD_SIZE.width;
-    const depth = BOARD_SIZE.depth;
+    const width = this.boardSize.width;
+    const depth = this.boardSize.depth;
     for (let x = 0; x <= width; x += 1) {
       const offsetX = (x - width / 2) * BLOCK_SIZE;
       vertices.push(offsetX, 0, -(depth / 2) * BLOCK_SIZE);

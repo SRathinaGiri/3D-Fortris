@@ -1,8 +1,13 @@
-// Use a 10×10×20 volume so the playfield offers more room than the original 5×5×20 grid.
-export const BOARD_SIZE = {
+// Use a 10×10×20 volume by default so the playfield offers more room than the original grid.
+export const DEFAULT_BOARD_SIZE = {
   width: 10,
   depth: 10,
   height: 20,
+};
+
+export const BOARD_LIMITS = {
+  min: 6,
+  max: 14,
 };
 
 export const STORAGE_KEY = '3dtris-progress';

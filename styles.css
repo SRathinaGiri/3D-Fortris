@@ -81,9 +81,11 @@ button:hover {
 
 .app__stage {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 1.5rem;
   padding: 1rem;
+  flex-wrap: wrap;
 }
 
 .app__sidebar {
@@ -244,6 +246,15 @@ select {
   color: inherit;
 }
 
+input[type='number'] {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.65);
+  color: inherit;
+}
+
 input[type='range'] {
   accent-color: #38bdf8;
 }
@@ -273,6 +284,56 @@ input[type='range'] {
 .game-canvas--stereo {
   width: 800px;
   min-width: 800px;
+}
+
+.stage__intel {
+  width: clamp(240px, 24vw, 320px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.layer-table__wrapper {
+  overflow-x: auto;
+}
+
+.layer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.layer-table th,
+.layer-table td {
+  text-align: left;
+  padding: 0.35rem 0.2rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.layer-table th {
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.layer-table td {
+  color: #e2e8f0;
+}
+
+.layer-table tr:last-child td {
+  border-bottom: none;
+}
+
+.layer-table__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.layer-table__done {
+  color: #4ade80;
+  font-weight: 600;
 }
 
 .game-canvas__fallback {
