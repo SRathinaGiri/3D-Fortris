@@ -27,6 +27,8 @@ const createGrid = (boardSize) => Array.from({ length: boardSize.height }, () =>
 
 const cloneGrid = (grid) => grid.map((layer) => layer.map((row) => row.slice()));
 
+const cloneGrid = (grid) => grid.map((layer) => layer.map((row) => row.slice()));
+
 const rotateCell = ([x, y, z], axis) => {
   switch (axis) {
     case 'x':
@@ -78,6 +80,16 @@ const randomShape = () => {
   return SHAPES[SHAPES.length - 1];
 };
 
+const randomShape = () => {
+  const target = Math.random() * TOTAL_SHAPE_WEIGHT;
+  let cumulative = 0;
+  for (const shape of SHAPES) {
+    cumulative += shape.weight ?? 1;
+    if (target <= cumulative) return shape;
+  }
+  return SHAPES[SHAPES.length - 1];
+};
+
 const spawnPosition = (shape, boardSize) => {
   const highestOffset = shape.cells.reduce((max, [, y]) => Math.max(max, y), 0);
   return {
@@ -96,7 +108,7 @@ const createQueue = (length = QUEUE_LENGTH, boardSize = DEFAULT_BOARD_SIZE) =>
   Array.from({ length }, () => createPiece(undefined, boardSize));
 
 const mergePiece = (grid, piece, boardSize) => {
-  const newGrid = cloneGrid(grid);
+const newGrid = cloneGrid(grid);
   piece.cells.forEach(([cx, cy, cz]) => {
     const x = piece.position.x + cx;
     const y = piece.position.y + cy;
