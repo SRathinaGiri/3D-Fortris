@@ -138,6 +138,29 @@ const applyBombEffect = (grid, piece, boardSize) => {
   return { grid: newGrid, removed };
 };
 
+const normalizeAngle = (angle) => {
+  const twoPi = Math.PI * 2;
+  if (!Number.isFinite(angle)) return 0;
+  return ((angle % twoPi) + twoPi) % twoPi;
+};
+
+const angleToGridOffset = (angle) => {
+  const normalized = normalizeAngle(angle);
+  const projectedX = Math.cos(normalized);
+  const projectedZ = Math.sin(normalized);
+  if (Math.abs(projectedX) >= Math.abs(projectedZ)) {
+    return { x: projectedX >= 0 ? 1 : -1, y: 0, z: 0 };
+  }
+  return { x: 0, y: 0, z: projectedZ >= 0 ? 1 : -1 };
+};
+
+const BASE_DIRECTION_OFFSETS = {
+  arrowleft: { x: -1, y: 0, z: 0 },
+  arrowright: { x: 1, y: 0, z: 0 },
+  arrowup: { x: 0, y: 0, z: -1 },
+  arrowdown: { x: 0, y: 0, z: 1 },
+};
+
 export class GameState {
   constructor() {
     const savedProgress = readSavedProgress();
@@ -165,6 +188,7 @@ export class GameState {
     this.loopHandle = null;
     this.clearTimer = null;
     this.messageTimer = null;
+    this.cameraTheta = Math.PI / 4;
     this.keyHandler = (event) => this.handleKey(event);
     this.subscribers = new Set();
     this.initializePieces();
@@ -309,6 +333,11 @@ export class GameState {
     this.notify();
   }
 
+  updateCameraAngle(theta) {
+    if (!Number.isFinite(theta)) return;
+    this.cameraTheta = normalizeAngle(theta);
+  }
+
   updateStereoSettings(partial) {
     this.stereoSettings = { ...this.stereoSettings, ...partial };
     this.notify();
@@ -357,6 +386,33 @@ export class GameState {
       };
       this.notify();
     }
+  }
+
+  getDirectionalOffset(key) {
+    const baseOffset = BASE_DIRECTION_OFFSETS[key];
+    if (!baseOffset) return null;
+    if (!Number.isFinite(this.cameraTheta)) {
+      return baseOffset;
+    }
+    const forwardAngle = normalizeAngle(this.cameraTheta + Math.PI);
+    const rightAngle = normalizeAngle(forwardAngle + Math.PI / 2);
+    const angleMap = {
+      arrowup: forwardAngle,
+      arrowdown: forwardAngle + Math.PI,
+      arrowright: rightAngle,
+      arrowleft: rightAngle + Math.PI,
+    };
+    const angle = angleMap[key];
+    if (typeof angle === 'undefined') {
+      return baseOffset;
+    }
+    return angleToGridOffset(angle) || baseOffset;
+  }
+
+  moveWithViewOrientation(key) {
+    const offset = this.getDirectionalOffset(key);
+    if (!offset) return;
+    this.updatePiecePosition(offset);
   }
 
   rotateActive(axis) {
@@ -493,19 +549,19 @@ export class GameState {
     switch (key) {
       case 'arrowleft':
         event.preventDefault();
-        this.updatePiecePosition({ x: -1, y: 0, z: 0 });
+        this.moveWithViewOrientation('arrowleft');
         break;
       case 'arrowright':
         event.preventDefault();
-        this.updatePiecePosition({ x: 1, y: 0, z: 0 });
+        this.moveWithViewOrientation('arrowright');
         break;
       case 'arrowup':
         event.preventDefault();
-        this.updatePiecePosition({ x: 0, y: 0, z: -1 });
+        this.moveWithViewOrientation('arrowup');
         break;
       case 'arrowdown':
         event.preventDefault();
-        this.updatePiecePosition({ x: 0, y: 0, z: 1 });
+        this.moveWithViewOrientation('arrowdown');
         break;
       case 'q':
       case 'e':

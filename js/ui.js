@@ -30,6 +30,9 @@ export function initUI(gameState) {
   };
 
   const renderer = new GameRenderer(document.getElementById('gameCanvas'));
+  const cameraSubscription = renderer.onCameraOrbitChange
+    ? renderer.onCameraOrbitChange(({ theta }) => gameState.updateCameraAngle(theta))
+    : () => {};
   const renderRendererError = () => {
     const rendererError = renderer.getErrorMessage();
     if (rendererError) {
@@ -201,6 +204,7 @@ export function initUI(gameState) {
     focusDepthInput.removeEventListener('input', focusHandler);
     fovInput.removeEventListener('input', fovHandler);
     opacityInput.removeEventListener('input', opacityHandler);
+    cameraSubscription();
     if (gridSizeInput) {
       gridSizeInput.removeEventListener('change', gridSizeHandler);
     }

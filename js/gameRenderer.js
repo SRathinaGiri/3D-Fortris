@@ -42,6 +42,8 @@ export class GameRenderer {
     this.pointerHandlers = {};
     this.autoRotateSpeed = 0.0009;
     this.autoRotateEnabled = true;
+    this.orbitListeners = new Set();
+    this.lastCameraTheta = this.cameraOrbit.theta;
     this.init();
   }
 
@@ -396,6 +398,7 @@ export class GameRenderer {
       this.cameraOrbit.phi -= dy * 0.004;
       this.pointerState.lastX = event.clientX;
       this.pointerState.lastY = event.clientY;
+      this.notifyCameraOrbitChange();
       this.updateCameraOrbit(true);
     };
 
@@ -433,10 +436,34 @@ export class GameRenderer {
   animateOrbit() {
     if (this.autoRotateEnabled && !this.pointerState.dragging) {
       this.cameraOrbit.theta += this.autoRotateSpeed;
+      this.notifyCameraOrbitChange();
     }
     if (this.viewType !== 'top') {
       this.updateCameraOrbit();
     }
+  }
+
+  onCameraOrbitChange(listener) {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+    this.orbitListeners.add(listener);
+    listener({ theta: this.cameraOrbit.theta });
+    return () => {
+      this.orbitListeners.delete(listener);
+    };
+  }
+
+  notifyCameraOrbitChange() {
+    if (!this.orbitListeners.size) return;
+    if (typeof this.lastCameraTheta !== 'number') {
+      this.lastCameraTheta = this.cameraOrbit.theta;
+    }
+    if (Math.abs(this.cameraOrbit.theta - this.lastCameraTheta) < 0.0001) {
+      return;
+    }
+    this.lastCameraTheta = this.cameraOrbit.theta;
+    this.orbitListeners.forEach((listener) => listener({ theta: this.cameraOrbit.theta }));
   }
 
   setAutoRotate(enabled) {
@@ -555,5 +582,6 @@ export class GameRenderer {
     if (this.fallbackEl && this.fallbackEl.parentNode === this.container) {
       this.container.removeChild(this.fallbackEl);
     }
+    this.orbitListeners.clear();
   }
 }
