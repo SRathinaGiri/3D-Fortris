@@ -395,7 +395,7 @@ export class GameState {
       return baseOffset;
     }
     const forwardAngle = normalizeAngle(this.cameraTheta + Math.PI);
-    const rightAngle = normalizeAngle(forwardAngle - Math.PI / 2);
+    const rightAngle = normalizeAngle(forwardAngle + Math.PI / 2);
     const angleMap = {
       arrowup: forwardAngle,
       arrowdown: forwardAngle + Math.PI,
