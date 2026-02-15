@@ -99,6 +99,12 @@ export class GameRenderer {
       rimLight.position.set(-8, 15, -8);
       this.scene.add(ambient, keyLight, rimLight);
 
+      this.gameGroup = new THREE.Group();
+      // VR specific adjustments: Scale down and move forward/up
+      this.gameGroup.scale.setScalar(0.15);
+      this.gameGroup.position.set(0, 1.3, -3.5);
+      this.scene.add(this.gameGroup);
+
       this.floorMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(
           this.boardSize.width * BLOCK_SIZE + 1.5,
@@ -108,16 +114,16 @@ export class GameRenderer {
       );
       this.floorMesh.rotation.x = -Math.PI / 2;
       this.floorMesh.position.y = this.floorY - 0.05;
-      this.scene.add(this.floorMesh);
+      this.gameGroup.add(this.floorMesh);
 
       this.floorGrid = this.createFloorGrid();
-      this.scene.add(this.floorGrid);
+      this.gameGroup.add(this.floorGrid);
 
       this.blockGroup = new THREE.Group();
-      this.scene.add(this.blockGroup);
+      this.gameGroup.add(this.blockGroup);
 
       this.landingGroup = new THREE.Group();
-      this.scene.add(this.landingGroup);
+      this.gameGroup.add(this.landingGroup);
     } catch (error) {
       console.error('Failed to initialize WebGL renderer', error);
       if (this.renderer) {
@@ -158,12 +164,20 @@ export class GameRenderer {
       this.floorMesh.position.y = this.floorY - 0.05;
     }
     if (this.floorGrid) {
-      this.scene.remove(this.floorGrid);
+      if (this.gameGroup) {
+        this.gameGroup.remove(this.floorGrid);
+      } else {
+        this.scene.remove(this.floorGrid);
+      }
       if (this.floorGrid.geometry) {
         this.floorGrid.geometry.dispose();
       }
       this.floorGrid = this.createFloorGrid();
-      this.scene.add(this.floorGrid);
+      if (this.gameGroup) {
+        this.gameGroup.add(this.floorGrid);
+      } else {
+        this.scene.add(this.floorGrid);
+      }
     }
   }
 
