@@ -102,7 +102,8 @@ export class WellView {
     this.markerMat = new THREE.MeshBasicMaterial({ color: GHOST_COLOR, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false });
 
     this.active = new THREE.InstancedMesh(this.cubeGeo, this.activeMat, MAX_PIECE);
-    this.active.castShadow = true;
+    // No shadow from the falling piece: it read as a second landing spot next to the ghost and markers
+    this.active.castShadow = false;
     this.active.count = 0;
     this.ghost = new THREE.InstancedMesh(this.boxGeo, this.ghostMat, MAX_PIECE);
     this.ghost.count = 0;
@@ -129,7 +130,6 @@ export class WellView {
   makeBomb() {
     const grp = new THREE.Group();
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 28, 18), new THREE.MeshStandardMaterial({ color: 0x1b1b24, roughness: 0.25, metalness: 0.6, envMap: this.env, envMapIntensity: 1 }));
-    body.castShadow = true;
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.43, 0.05, 10, 32), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
     band.rotation.x = Math.PI / 2;
     const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.14, 12), new THREE.MeshStandardMaterial({ color: 0x8b8b9a, metalness: 0.7, roughness: 0.3 }));

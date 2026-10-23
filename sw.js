@@ -1,6 +1,6 @@
 // Service Worker for 3D Fortris PWA (network-first, offline fallback; pattern from 3D Labyrinth / 3D Tunnel Rush)
 const CACHE_PREFIX = 'fortris-';
-const CACHE_VERSION = 'fortris-v2.0.0';
+const CACHE_VERSION = 'fortris-v2.0.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

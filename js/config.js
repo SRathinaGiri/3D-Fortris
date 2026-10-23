@@ -4,7 +4,7 @@
    Pure module (no THREE / DOM) so it can be unit-tested in Node.
    ========================================================================== */
 
-export const VERSION = '2.0.0';
+export const VERSION = '2.0.1';
 
 // 10×10 floor. Height 15 by default: a 20-high well renders very small in side-by-side 3D on a
 // landscape phone (each eye gets a square half). 20 stays available as "Classic" (v1's height).

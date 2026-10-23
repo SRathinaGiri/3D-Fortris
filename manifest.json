@@ -3,7 +3,7 @@
   "name": "3D Fortris",
   "short_name": "Fortris3D",
   "description": "Stack, rotate and clear entire 3D layers. 2D, Parallel, Cross-eye, Anaglyph, Smart-glasses and VR stereo modes.",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
