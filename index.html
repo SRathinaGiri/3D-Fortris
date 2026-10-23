@@ -1,167 +1,295 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3DTris</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <div class="app">
-      <header class="app__header">
-        <div>
-          <h1>3DTris</h1>
-          <p class="app__tagline">Stack, rotate and clear entire volumes in a fully 3D Tetris experience.</p>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="3D Fortris: stack, rotate and clear entire 3D layers. 2D, Parallel, Cross-eye, Anaglyph, Smart-glasses and VR stereo modes.">
+  <meta name="theme-color" content="#020617">
+  <title>3D Fortris</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Fortris3D">
+  <link rel="stylesheet" href="./css/styles.css?v=2.0.0">
+  <!-- Three.js r128, bundled locally so the PWA works fully offline -->
+  <script src="./js/lib/three.min.js"></script>
+  <!-- PeerJS 1.5.5 (MIT, bundled locally): phone-controller pairing only. See js/lib/peerjs.LICENSE.txt -->
+  <script src="./js/lib/peerjs.min.js?v=1.5.5"></script>
+</head>
+<body>
+
+  <!-- ============ PAGE 1: MENU ============ -->
+  <div id="menuPage" class="page">
+    <header class="app-header">
+      <div class="brand-title">
+        <svg width="28" height="28" viewBox="8 2 48 56" aria-hidden="true">
+          <g stroke="#020617" stroke-width="1.5" stroke-linejoin="round">
+            <path d="M32 30l11 6.3v12.7L32 55.3 21 49V36.3z" fill="#facc15"/>
+            <path d="M21 17.3l11 6.3v12.7L21 42.6 10 36.3V23.6z" fill="#38bdf8"/>
+            <path d="M43 17.3l11 6.3v12.7L43 42.6 32 36.3V23.6z" fill="#f472b6"/>
+            <path d="M32 4.6l11 6.3v12.7L32 30 21 23.6V10.9z" fill="#a855f7"/>
+          </g>
+        </svg>
+        <span>3D Fortris</span>
+        <span class="version-badge">v2.0.0</span>
+      </div>
+      <div class="header-controls">
+        <button class="icon-btn install-btn" id="installBtn" style="display:none" title="Install as an app on this device">📲 Install app</button>
+        <button class="icon-btn vr-btn" id="webxrBtn" style="display:none" title="Enter immersive VR (Meta Quest browser)">🥽 VR</button>
+        <button class="icon-btn" id="audioToggle" title="Toggle sound (M)">🔊 Sound</button>
+        <button class="icon-btn" id="helpBtn" title="How to play & 3D viewing guide">❓ Guide</button>
+      </div>
+    </header>
+
+    <main class="menu-content">
+      <section class="card hero">
+        <h1 class="title">3D Fortris</h1>
+        <p class="muted">Stack, rotate and clear entire <strong>3D layers</strong>. Pieces wait at the top until you
+          <strong class="green">release</strong> them; press again to slam them down. Every five layers the drops get faster.</p>
+        <button class="action-btn" id="playBtn">▶ Play</button>
+        <button class="action-btn ghost hidden" id="newGameBtn">↻ New game</button>
+        <div class="size-row">
+          <label for="sizeSlider">Well</label>
+          <input type="range" id="sizeSlider" min="6" max="14" step="1" value="10">
+          <span class="val" id="sizeVal">10 × 10 × 15</span>
         </div>
-        <div class="header__actions">
-          <button type="button" class="secondary" data-action="pause">Pause</button>
-          <button type="button" data-action="restart">Restart</button>
+        <div class="size-row">
+          <label>Height</label>
+          <div class="mode-selector" id="heightSelector" role="radiogroup" aria-label="Well height"></div>
         </div>
-      </header>
+        <p class="hint" id="sizeNote"></p>
+        <h3 class="section-h">High scores</h3>
+        <ol class="score-list" id="scoreList"></ol>
+        <p class="hint" id="totalLines"></p>
+      </section>
 
-      <main class="app__body">
-        <section class="app__sidebar">
-          <section class="panel">
-            <header>
-              <h3>Mission Briefing</h3>
-              <p>Clear complete 3D layers to keep the playfield open.</p>
-            </header>
-            <dl class="stats">
-              <div>
-                <dt>Score</dt>
-                <dd data-stat="score">0</dd>
-              </div>
-              <div>
-                <dt>Level</dt>
-                <dd data-stat="level">1</dd>
-              </div>
-              <div>
-                <dt>Cleared Layers</dt>
-                <dd data-stat="layers">0</dd>
-              </div>
-            </dl>
-            <div class="next-piece">
-              <h4>Next Pieces</h4>
-              <p class="next-piece__hint">Always plan three steps ahead.</p>
-              <div class="piece-preview__list" data-next-piece>
-                <p>No pieces queued</p>
-              </div>
-            </div>
-          </section>
+      <details class="card fold" data-fold="controls">
+        <summary><span class="section-h">🎮 Controls</span><span class="fold-sum" id="sumControls"></span><span class="fold-caret" aria-hidden="true">▾</span></summary>
+        <div class="fold-body">
+        <div class="row-wrap">
+          <button class="icon-btn" id="autoRotateBtn" title="Slowly orbit the camera around the well">🔄 Auto-rotate camera: ON</button>
+          <button class="icon-btn" id="padModeBtn" title="On-screen arrows, rotations and DROP (Auto = touch screens only)">🕹 Touch pad: Auto</button>
+          <button class="icon-btn" id="phonePadBtn" title="Use a phone on the same Wi-Fi as a controller (e.g. for a TV or smart glasses)">📲 Phone controller</button>
+        </div>
+        <table class="key-table">
+          <tr><td><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></td><td>Move the piece (relative to the camera: ↑ = away from you)</td></tr>
+          <tr><td><kbd>Q</kbd> / <kbd>E</kbd></td><td>Rotate around X (E = the other way)</td></tr>
+          <tr><td><kbd>A</kbd> / <kbd>D</kbd></td><td>Rotate around Y</td></tr>
+          <tr><td><kbd>W</kbd> / <kbd>S</kbd></td><td>Rotate around Z</td></tr>
+          <tr><td><kbd>Space</kbd></td><td>Release the piece · press again for a hard drop</td></tr>
+          <tr><td><kbd>V</kbd> / <kbd>Shift</kbd>+<kbd>V</kbd></td><td>Turn the camera 90°</td></tr>
+          <tr><td><kbd>T</kbd> · <kbd>H</kbd></td><td>Top view · show/hide the Next &amp; Layers panels</td></tr>
+          <tr><td><kbd>P</kbd> · <kbd>R</kbd> · <kbd>M</kbd></td><td>Pause · restart · sound</td></tr>
+        </table>
+        <p class="hint">Drag the view to orbit, pinch or scroll to zoom. Gamepad: D-pad / stick move, A drop, X / Y / B rotate Y / X / Z, LB / RB turn the camera, Start pause.</p>
+        </div>
+      </details>
 
-          <section class="panel">
-            <header>
-              <h3>Progress</h3>
-              <p>Reach new levels every five cleared layers.</p>
-            </header>
-            <div class="progress">
-              <div class="progress__fill" data-progress-fill style="width: 0%"></div>
-            </div>
-            <p data-progress-label>Level 1 • 5 layers to next level</p>
-          </section>
+      <details class="card fold" data-fold="look">
+        <summary><span class="section-h">🎨 Look</span><span class="fold-sum" id="sumLook"></span><span class="fold-caret" aria-hidden="true">▾</span></summary>
+        <div class="fold-body">
+        <div class="slider-group">
+          <label>Cube opacity</label>
+          <input type="range" class="opacity-slider" min="0.2" max="1" step="0.05" value="0.85">
+          <span class="val opacity-val">85%</span>
+        </div>
+        <div class="row-wrap">
+          <button class="icon-btn" id="ghostBtn">👻 Landing ghost: ON</button>
+          <button class="icon-btn" id="guidesBtn">⇣ Drop guides: ON</button>
+          <button class="icon-btn" id="panelsBtn">▤ Next &amp; Layers panels: ON</button>
+        </div>
+        </div>
+      </details>
 
-          <section class="panel">
-            <header>
-              <h3>Visual Settings</h3>
-            </header>
-            <label for="viewMode">View Mode</label>
-            <select id="viewMode">
-              <option value="perspective" selected>3D Perspective</option>
-              <option value="top">2D Top View</option>
-              <option value="cross">Cross View</option>
-              <option value="parallel">Parallel View</option>
-              <option value="anaglyph">Anaglyph View</option>
-              <option value="stereo">Stereo 3D</option>
-            </select>
+      <details class="card fold" data-fold="stereo">
+        <summary><span class="section-h">👓 3D Viewing</span><span class="fold-sum" id="sum3d"></span><span class="fold-caret" aria-hidden="true">▾</span></summary>
+        <div class="fold-body">
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="2d">2D</button>
+          <button class="mode-btn" data-mode="parallel">Parallel 3D (SBS)</button>
+          <button class="mode-btn" data-mode="cross">Cross-Eye 3D</button>
+          <button class="mode-btn" data-mode="anaglyph">Anaglyph 🔴🔵</button>
+          <button class="mode-btn" data-mode="hsbs" title="Half side-by-side 16:9 for RayNeo / XREAL / Rokid / TCL glasses">Smart Glasses (HSBS)</button>
+        </div>
+        <div class="slider-group" title="Stereo strength (eye separation, scaled to viewing distance)">
+          <label>3D Depth</label>
+          <input type="range" class="depth-slider" min="0" max="3" step="0.05" value="1">
+          <span class="val depth-val">1.00</span>
+        </div>
+        <div class="slider-group" title="Move the zero-parallax (screen) plane nearer (-) or further (+)">
+          <label>Focus</label>
+          <input type="range" class="focus-slider" min="-40" max="40" step="1" value="0">
+          <span class="val focus-val">0%</span>
+        </div>
+        <button class="icon-btn swap-btn">🔄 Swap Eyes</button>
+        </div>
+      </details>
+      <p class="hint reset-line"><button class="link-btn" id="resetScoresBtn">Clear high scores</button></p>
+    </main>
+  </div>
 
-            <label for="cubeOpacity">
-              Cube opacity
-              <span data-opacity-value>100%</span>
-            </label>
-            <input id="cubeOpacity" type="range" min="0.2" max="1" step="0.05" value="0.85" />
-
-            <label class="toggle" for="autoRotate">
-              <input type="checkbox" id="autoRotate" checked />
-              <span>
-                Auto-rotate camera
-                <small>Uncheck to keep the board perfectly still.</small>
-              </span>
-            </label>
-
-            <div class="stereo-grid" data-stereo-grid hidden>
-              <label for="eyeDistance">
-                Eye distance
-                <span data-eye-value>0.065m</span>
-              </label>
-              <input
-                id="eyeDistance"
-                type="range"
-                min="0.02"
-                max="0.12"
-                step="0.005"
-                value="0.065"
-              />
-
-              <label for="focusDepth">
-                Focus depth
-                <span data-focus-value>5.0m</span>
-              </label>
-              <input id="focusDepth" type="range" min="1" max="15" step="0.5" value="5" />
-
-              <label for="fov">
-                Field of View
-                <span data-fov-value>60°</span>
-              </label>
-              <input id="fov" type="range" min="35" max="110" value="60" />
-            </div>
-
-            <p class="panel__message" data-panel-message hidden></p>
-          </section>
-
-          <article class="tips">
-            <h3>Controls</h3>
-            <ul>
-              <li>Arrow keys: Move the falling piece</li>
-              <li>Q / E: Rotate around the X axis</li>
-              <li>W / S: Rotate around the Z axis</li>
-              <li>A / D: Rotate around the Y axis</li>
-              <li>Space: Release the piece (press again for a hard drop)</li>
-              <li>P: Pause / resume</li>
-            </ul>
-          </article>
-        </section>
-
-        <section class="app__stage">
-          <div id="gameCanvas" class="game-canvas"></div>
-          <aside class="panel stage__intel">
-            <header>
-              <h3>Playfield Planner</h3>
-              <p>Adjust the grid size and monitor the lowest layers.</p>
-            </header>
-            <label for="gridSize">Grid size (6 - 14)</label>
-            <input id="gridSize" type="number" min="6" max="14" value="10" step="1" />
-            <p class="layer-table__hint">Layer 1 is the bottom-most level of the arena.</p>
-            <div class="layer-table__wrapper">
-              <table class="layer-table">
-                <thead>
-                  <tr>
-                    <th>Layer number</th>
-                    <th>Total blocks</th>
-                    <th>Blocks to be filled</th>
-                  </tr>
-                </thead>
-                <tbody data-layer-table>
-                  <tr>
-                    <td colspan="3">Calibrating…</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </aside>
-        </section>
-      </main>
+  <!-- ============ PAGE 2: GAME ============ -->
+  <div id="gamePage" class="page hidden">
+    <div class="game-toolbar" id="gameToolbar">
+      <div class="group">
+        <button class="icon-btn icon-only" id="gamePauseBtn" title="Pause / 3D settings (P)">⏸️</button>
+        <button class="icon-btn icon-only" id="gameStopBtn" title="Back to menu (the game is saved)">⏹️</button>
+        <button class="icon-btn icon-only" id="gameRestartBtn" title="New game (R)">🔄</button>
+      </div>
+      <div class="group">
+        <button class="icon-btn icon-only" id="gameTurnLBtn" title="Turn the camera left (Shift+V)">↶</button>
+        <button class="icon-btn icon-only" id="gameTopBtn" title="Top view (T)">⊡</button>
+        <button class="icon-btn icon-only" id="gameTurnRBtn" title="Turn the camera right (V)">↷</button>
+        <button class="icon-btn icon-only" id="gameAudioBtn" title="Sound (M)">🔊</button>
+      </div>
     </div>
 
-    <script type="module" src="./main.js"></script>
-  </body>
+    <div class="stage" id="stage">
+      <div class="viewport-frame mode-single" id="viewportFrame">
+        <div class="sbs-divider" id="sbsDivider"></div>
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="modal-overlay hidden" id="pauseScreen">
+          <div class="modal-card">
+            <h2 class="title">⚙ 3D &amp; Look</h2>
+            <div class="mode-selector">
+              <button class="mode-btn" data-mode="2d">2D</button>
+              <button class="mode-btn" data-mode="parallel">Parallel</button>
+              <button class="mode-btn" data-mode="cross">Cross-Eye</button>
+              <button class="mode-btn" data-mode="anaglyph">Anaglyph</button>
+              <button class="mode-btn" data-mode="hsbs">HSBS</button>
+            </div>
+            <div class="slider-group">
+              <label>3D Depth</label>
+              <input type="range" class="depth-slider" min="0" max="3" step="0.05" value="1">
+              <span class="val depth-val">1.00</span>
+            </div>
+            <div class="slider-group">
+              <label>Focus</label>
+              <input type="range" class="focus-slider" min="-40" max="40" step="1" value="0">
+              <span class="val focus-val">0%</span>
+            </div>
+            <div class="slider-group">
+              <label>Cube opacity</label>
+              <input type="range" class="opacity-slider" min="0.2" max="1" step="0.05" value="0.85">
+              <span class="val opacity-val">85%</span>
+            </div>
+            <button class="icon-btn swap-btn">🔄 Swap Eyes</button>
+            <div class="btn-row">
+              <button class="action-btn ghost" id="settingsBackBtn">◀ Back</button>
+              <button class="action-btn" id="resumeBtn">▶ Resume</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- On-screen pad (touch screens): arrows follow the camera, like the keyboard -->
+    <div class="pad-cluster dpad" id="dpad" aria-label="Move">
+      <button class="pad-key up" data-act="up" data-repeat="1" aria-label="Move away">▲</button>
+      <button class="pad-key left" data-act="left" data-repeat="1" aria-label="Move left">◀</button>
+      <button class="pad-key right" data-act="right" data-repeat="1" aria-label="Move right">▶</button>
+      <button class="pad-key down" data-act="down" data-repeat="1" aria-label="Move toward you">▼</button>
+    </div>
+    <div class="pad-cluster rotpad" id="rotpad" aria-label="Rotate and drop">
+      <button class="pad-key rot" data-act="rotX" aria-label="Rotate around X">⟲X</button>
+      <button class="pad-key rot" data-act="rotY" aria-label="Rotate around Y">⟲Y</button>
+      <button class="pad-key rot" data-act="rotZ" aria-label="Rotate around Z">⟲Z</button>
+      <button class="pad-key drop" data-act="drop" aria-label="Release / hard drop">⤓ DROP</button>
+    </div>
+  </div>
+
+  <!-- ============ GUIDE ============ -->
+  <div class="drawer-overlay hidden" id="infoDrawer">
+    <div class="drawer">
+      <h3>How to play</h3>
+      <ul>
+        <li>Pieces fall inside a <strong>3D well</strong>. Fill every cell of a horizontal layer to clear it: 100 points × your level per layer.</li>
+        <li>A new piece <strong>waits at the top</strong> (⏸ HOLD on the bar) so you can line it up. Press <strong>DROP</strong> (<kbd>Space</kbd>) to release it, and DROP again to slam it down.</li>
+        <li>The <strong>ghost</strong> and the floor markers show where the piece will land; the thin lines drop from each column.</li>
+        <li><strong>Arrows follow the camera</strong>: ▲ always moves the piece away from you. Turn the view with ↶ ↷ (<kbd>V</kbd>), look straight down with ⊡ (<kbd>T</kbd>), or drag to orbit.</li>
+        <li>💣 <strong>Bomb</strong>: blows away the block it lands on (+50).</li>
+        <li><strong>NEXT</strong> (right) shows the coming three pieces as 3D models; <strong>LAYERS</strong> (left) counts the blocks the bottom layers still need.</li>
+        <li>A new level every 5 layers: pieces fall faster and score more; the well carries on as it is. A new game always starts at level 1; your game is saved and <em>Continue</em> picks it up later.</li>
+        <li><strong>Height</strong> (menu): 15 by default, 12 for small screens, 20 = Classic. A lower well shows bigger in side-by-side 3D on a phone.</li>
+      </ul>
+      <h3>3D viewing modes</h3>
+      <ul>
+        <li><strong>Parallel 3D</strong>: left image for left eye — cardboard viewers or parallel free-viewing.</li>
+        <li><strong>Cross-Eye 3D</strong>: cross your eyes until a third image fuses in the middle.</li>
+        <li><strong>Anaglyph</strong>: red/cyan glasses.</li>
+        <li><strong>Smart Glasses (HSBS)</strong>: 16:9 half side-by-side for RayNeo Air, XREAL, Rokid, TCL — switch the glasses to 3D SBS mode.</li>
+        <li><strong>🥽 VR</strong>: appears in the Meta Quest browser. The well stands in front of you; thumbstick moves, triggers / grips rotate, A drops, B pauses.</li>
+        <li><strong>3D Depth</strong> scales with the camera distance; lower it if your eyes strain. <strong>Focus</strong> moves the screen plane.</li>
+      </ul>
+      <button class="action-btn" id="closeInfoBtn">Got it</button>
+    </div>
+  </div>
+
+  <!-- Install offer (Android/Chrome: system prompt; iPhone/iPad: Add to Home Screen steps) -->
+  <div class="banner-stack">
+  <div id="installBanner" class="update-banner install-banner hidden">
+    <span>📲 Play full-screen and offline: install 3D Fortris as an app.</span>
+    <button id="installBannerBtn" class="update-btn">Install</button>
+    <button id="closeInstallBtn" class="update-close" title="Not now">✖</button>
+  </div>
+
+  <div id="updateBanner" class="update-banner hidden">
+    <span>🚀 A new version is ready.</span>
+    <button id="installUpdateBtn" class="update-btn">🔄 Update</button>
+    <button id="closeUpdateBtn" class="update-close" title="Dismiss">✖</button>
+  </div>
+  </div>
+
+  <div class="drawer-overlay hidden" id="linkPanel">
+    <div class="drawer">
+      <h3>📲 Phone controller</h3>
+      <p class="muted">On a phone connected to the <strong>same Wi-Fi</strong>, open:</p>
+      <p class="link-url" id="linkUrl"></p>
+      <p class="muted">and enter this code:</p>
+      <div class="link-code" id="linkCode">······</div>
+      <p class="link-status" id="linkStatus"></p>
+      <p class="hint">Pairing uses the free PeerJS service only to introduce the two devices. After that, button presses go directly from the phone to this screen over your Wi-Fi.</p>
+      <div class="btn-row">
+        <button class="action-btn" id="linkDoneBtn">Done</button>
+        <button class="action-btn ghost" id="linkStopBtn">Disconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer-overlay hidden" id="iosInstallHelp">
+    <div class="drawer">
+      <h3>📲 Install on iPhone / iPad</h3>
+      <ol class="steps">
+        <li>Open this page in <strong>Safari</strong>.</li>
+        <li>Tap the <strong>Share</strong> button (square with an arrow ↑).</li>
+        <li>Choose <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+      </ol>
+      <p class="hint">The game then opens full-screen from its own icon and works offline.</p>
+      <button class="action-btn" id="closeIosHelpBtn">Got it</button>
+    </div>
+  </div>
+
+  <!-- Every module gets the release version in its URL, so an update can never mix old and new code
+       (HTTP/CDN caches would otherwise serve stale modules next to a fresh app.js). -->
+  <script type="importmap">
+  {
+    "imports": {
+      "./js/config.js": "./js/config.js?v=2.0.0",
+      "./js/game.js": "./js/game.js?v=2.0.0",
+      "./js/renderer.js": "./js/renderer.js?v=2.0.0",
+      "./js/well.js": "./js/well.js?v=2.0.0",
+      "./js/controls.js": "./js/controls.js?v=2.0.0",
+      "./js/hud3d.js": "./js/hud3d.js?v=2.0.0",
+      "./js/audio.js": "./js/audio.js?v=2.0.0",
+      "./js/ui.js": "./js/ui.js?v=2.0.0",
+      "./js/link.js": "./js/link.js?v=2.0.0",
+      "./js/progress.js": "./js/progress.js?v=2.0.0"
+    }
+  }
+  </script>
+  <script type="module" src="./js/app.js?v=2.0.0"></script>
+</body>
 </html>
