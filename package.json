@@ -1,0 +1,8 @@
+{
+  "name": "3d-fortris",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/logic.test.mjs tests/version.test.mjs"
+  }
+}
