@@ -97,7 +97,9 @@ export class TwinControl {
     return m;
   }
 
-  get hand() { return this.app.settings.hand === 'left' ? 'left' : 'right'; }
+  /** 'off' (default since v2.4: tapping the piece toggles MOVE / ROTATE instead), 'right' or 'left'. */
+  get enabled() { return this.app.settings.twin === 'right' || this.app.settings.twin === 'left'; }
+  get hand() { return this.app.settings.twin === 'left' ? 'left' : 'right'; }
 
   /* ------------------------------ Placement ------------------------------ */
   /** Flat screen: a column under the HUD's side panels, on the hand's side. Called every frame before the eyes render. */
@@ -158,7 +160,7 @@ export class TwinControl {
   /* ------------------------------ Per frame ------------------------------ */
   update(dt, xrOffHand = null) {
     const app = this.app, g = app.game;
-    const on = app.state === 'PLAYING' && !app.hud.dialogVisible && !!g.active && !g.over;
+    const on = this.enabled && app.state === 'PLAYING' && !app.hud.dialogVisible && !!g.active && !g.over;
     this.group.visible = on;
     if (!on) return;
     if (app.inVR) this.layoutXR(xrOffHand); else this.layoutFlat();

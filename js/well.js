@@ -482,7 +482,11 @@ export class WellView {
     this.elapsed += dt;
     this.stars.rotation.y += dt * 0.01;
     // Falling piece glows a little while it waits to be released (HOLD)
-    if (this.activeColor) this.activeMat.emissive.copy(this.activeColor).multiplyScalar(gravityOn ? 0.18 : 0.18 + 0.14 * (1 + Math.sin(this.elapsed * 5)));
+    if (this.activeColor) {
+      // ROTATE mode (grab.js): a stronger, faster glow, so you know swipes will turn it
+      const glow = this.rotateMode ? 0.4 + 0.25 * (1 + Math.sin(this.elapsed * 9)) : gravityOn ? 0.18 : 0.18 + 0.14 * (1 + Math.sin(this.elapsed * 5));
+      this.activeMat.emissive.copy(this.activeColor).multiplyScalar(glow);
+    }
     if (this.bomb.visible) { this.spark.scale.setScalar(0.8 + Math.random() * 0.7); this.bomb.rotation.y += dt; }
     // Just-landed cells: bright -> solid shade
     if (this.settle.length && this.locked && this.locked.instanceColor) {

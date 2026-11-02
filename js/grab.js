@@ -14,7 +14,10 @@
        piece: tap it and a blade runs along the bar and cuts the rope, the
        piece drops (hard drop). The rope itself is not a button any more
        (it was too easy to hit by accident). On landing the pulley reels in.
-     - a tapped piece grows a little and gets thick rotation rings
+     - tap the piece to switch it between MOVE (default: press and drag slides
+       it) and ROTATE (it grows a little and glows; swipe on it to roll it the
+       way you swipe, twist two fingers to turn it). Tap again: back to MOVE.
+       (v2.4: replaces the X/Y/Z rings; the ring code stays, switched off)
      - a 3D cursor at the pointer, drawn for both eyes so it fuses too
      - Meta Quest: point and pull the trigger (same as a tap / drag), squeeze
        the grip to hold the piece and twist your wrist to turn it, move your
@@ -36,7 +39,11 @@ const ROPE_GAP = 0.6;                 // the rope's last cells above the piece c
 export const CEILING = 1.5;           // gantry height above the well's rim (cells)
 export const CEILING_FIT = CEILING + 0.9; // what the camera must frame above the rim (gantry + countdown)
 export const CUTTER_OUT = 1.15;       // the cutter sits this far outside the wall, at the end of the ceiling bar
-const PIECE_ZOOM = 1.15;              // a tapped piece (rings showing) is drawn this much bigger
+const PIECE_ZOOM = 1.15;              // a piece in ROTATE mode is drawn this much bigger
+const SHOW_RINGS = false;             // v2.4: rotate by swiping instead of the X/Y/Z rings
+const SWIPE_PX = 34, TWIST_RAD = 0.6; // ROTATE mode: a quarter turn per swipe step / per two-finger twist step
+const ROTATE_PAD = 0.8;               // ROTATE mode: the piece is easier to hit (cells around it)
+const SPIN_CELLS = 0.9;               // Quest ROTATE mode: trigger-drag this far (cells) for a quarter turn
 const RING_TUBE = 0.1;                // ring thickness (cells)
 const BLADE_TIME = 0.32;
 const CUT_TIME = 0.45;
@@ -105,6 +112,7 @@ export class GrabControls {
     this.post = { ready: false, side: 1, sizeKey: '' };
 
     this.buildCursor();
+    this.buildBadge();
     this.buildPost();
     this.buildRope();
     this.buildRings();
@@ -123,6 +131,62 @@ export class GrabControls {
     s.renderOrder = 990;
     s.visible = false;
     return s;
+  }
+
+  /** Big MOVE / ROTATE badge in a bottom corner of the view (screen depth, so it fuses); tap it to switch. */
+  buildBadge() {
+    this.badgeCanvas = document.createElement('canvas');
+    this.badgeCanvas.width = 256; this.badgeCanvas.height = 300;
+    this.badgeTex = new THREE.CanvasTexture(this.badgeCanvas);
+    this.badgeTex.minFilter = THREE.LinearFilter;
+    this.badge = new THREE.Mesh(new THREE.PlaneGeometry(1, 300 / 256),
+      new THREE.MeshBasicMaterial({ map: this.badgeTex, transparent: true, depthTest: false, depthWrite: false }));
+    this.badge.renderOrder = 1020;
+    this.badge.frustumCulled = false;
+    this.badge.visible = false;
+    this.badgeMode = null;
+    this.badgeParent = null;
+  }
+
+  drawBadge(rotate) {
+    if (this.badgeMode === rotate) return;
+    this.badgeMode = rotate;
+    const g = this.badgeCanvas.getContext('2d'), col = rotate ? '#c084fc' : '#00f0ff';
+    g.clearRect(0, 0, 256, 300);
+    g.fillStyle = 'rgba(2,6,23,0.82)';
+    g.beginPath(); g.arc(128, 124, 112, 0, Math.PI * 2); g.fill();
+    g.lineWidth = 10; g.strokeStyle = col; g.stroke();
+    g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 16; g.lineCap = 'round'; g.lineJoin = 'round';
+    const head = (x, y, ang) => { // filled arrow head pointing along ang
+      g.beginPath();
+      g.moveTo(x + Math.cos(ang) * 26, y + Math.sin(ang) * 26);
+      g.lineTo(x + Math.cos(ang + 2.4) * 22, y + Math.sin(ang + 2.4) * 22);
+      g.lineTo(x + Math.cos(ang - 2.4) * 22, y + Math.sin(ang - 2.4) * 22);
+      g.closePath(); g.fill();
+    };
+    if (rotate) { // circular arrow
+      g.beginPath(); g.arc(128, 124, 56, -Math.PI * 0.35, Math.PI * 1.35); g.stroke();
+      const a = -Math.PI * 0.35, x = 128 + Math.cos(a) * 56, y = 124 + Math.sin(a) * 56;
+      head(x + 6, y + 4, a + Math.PI / 2 + 0.25);
+    } else { // four-way arrows
+      g.beginPath(); g.moveTo(128, 60); g.lineTo(128, 188); g.moveTo(64, 124); g.lineTo(192, 124); g.stroke();
+      head(128, 52, -Math.PI / 2); head(128, 196, Math.PI / 2); head(56, 124, Math.PI); head(200, 124, 0);
+    }
+    g.font = '900 46px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = col; g.fillText(rotate ? 'ROTATE' : 'MOVE', 128, 270);
+    this.badgeTex.needsUpdate = true;
+  }
+
+  /** Bottom corner, opposite the twin column when that is on (right otherwise). */
+  placeBadge() {
+    const hud = this.app.hud, info = hud.layoutInfo;
+    if (!info) return;
+    if (this.badgeParent !== hud.parent) { hud.parent.add(this.badge); this.badgeParent = hud.parent; }
+    const { viewW, viewH, distance, margin } = info;
+    const side = this.app.twin.enabled && this.app.twin.hand === 'right' ? -1 : 1;
+    const w = Math.min(viewH * 0.17, viewW * 0.2), h = w * 300 / 256;
+    this.badge.scale.set(w, w, 1);
+    this.badge.position.set(side * (viewW / 2 - w / 2 - margin), -viewH / 2 + h / 2 + margin, -distance * 0.996);
   }
 
   /** Ceiling gantry: a frame over the rim, a bridge across it and a trolley that carries the rope and the ✂ / ⤓ button. */
@@ -319,7 +383,7 @@ export class GrabControls {
       }
       if (best) hits.push({ kind: 'rope', t: best.t, point: best.point });
     }
-    if (info && this.ringsOn) {
+    if (info && this.ringsOn && SHOW_RINGS) {
       for (const a of ['x', 'y', 'z']) {
         const R = this.ringRadius(info, a);
         let best = null;
@@ -335,7 +399,7 @@ export class GrabControls {
       }
     }
     if (info) {
-      const box = info.box.clone().expandByScalar(PICK.pad);
+      const box = info.box.clone().expandByScalar(this.ringsOn ? ROTATE_PAD : PICK.pad);
       if (ray.intersectBox(box, tmp)) hits.push({ kind: 'piece', t: ray.origin.distanceTo(tmp), point: tmp.clone(), centre: info.centre.clone() });
     }
     if (!hits.length) return null;
@@ -364,8 +428,26 @@ export class GrabControls {
 
   /** Called from the orbit handler's pointerdown: true = the press is ours (no orbit). */
   onPointerDown(e) {
+    // A second finger during a ROTATE swipe joins it (two-finger twist), wherever it lands
+    if (this.drag && this.drag.kind === 'spin') {
+      this.drag.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      this.drag.moved = TAP_PX; // a twist is never a tap
+      this.restartSpin(this.drag);
+      try { e.currentTarget && e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { /* gone */ }
+      return true;
+    }
     if (this.drag || this.app.inVR) return false;
     if (e.pointerType === 'mouse' && e.button !== 0) return false;
+    if (this.badge.visible) {
+      this.raycaster.ray.copy(this.eyeRay(e).ray);
+      if (this.raycaster.intersectObject(this.badge, false).length) {
+        this.app.audio.ensureContext();
+        this.toggleRings();
+        this.badge.scale.multiplyScalar(0.9); // pressed; placeBadge() restores it next frame
+        this.drag = { id: e.pointerId, kind: 'done' };
+        return true;
+      }
+    }
     const { ray: wr, cam, view } = this.eyeRay(e);
     const ray = this.toLocalRay(wr);
     const hit = this.pick(ray);
@@ -393,7 +475,13 @@ export class GrabControls {
       this.ringMeshes[hit.axis].material.opacity = 1;
       return true;
     }
-    // Piece body: drag moves it across the well; a tap shows / hides the rings
+    // ROTATE mode: swipes on the piece roll it (camera-relative quarter turns); a tap goes back to MOVE
+    if (this.ringsOn) {
+      this.drag = { id: e.pointerId, kind: 'spin', pts: new Map([[e.pointerId, { x: e.clientX, y: e.clientY }]]), start, t0: performance.now(), moved: 0, turned: false };
+      this.restartSpin(this.drag);
+      return true;
+    }
+    // MOVE mode: drag moves it across the well; a tap switches to ROTATE
     const c = hit.centre;
     const o = this.toScreen(c, cam, view);
     const ex = this.toScreen(c.clone().add(AXES.x), cam, view).sub(o);
@@ -404,6 +492,7 @@ export class GrabControls {
 
   onPointerMove(e) {
     const d = this.drag;
+    if (d && d.kind === 'spin') { if (d.pts.has(e.pointerId)) { e.preventDefault(); this.spinMove(d, e); } return; }
     if (this.emptyTap && this.emptyTap.id === e.pointerId) this.emptyTap.moved = Math.max(this.emptyTap.moved, this.emptyTap.start.distanceTo(new THREE.Vector2(e.clientX, e.clientY)));
     if (!d || d.id !== e.pointerId) {
       // Hover: the 3D cursor follows the mouse (in SBS the OS pointer only shows in one half)
@@ -455,6 +544,14 @@ export class GrabControls {
       if (et.moved < TAP_PX && performance.now() - et.t0 < TAP_MS && this.ringsOn) this.toggleRings();
     }
     const d = this.drag;
+    if (d && d.kind === 'spin') {
+      if (!d.pts.delete(e.pointerId)) return;
+      if (d.pts.size) { this.restartSpin(d); return; }
+      if (d.moved < TAP_PX && performance.now() - d.t0 < TAP_MS && !d.turned) this.toggleRings(); // tap: back to MOVE
+      this.drag = null;
+      if (e.pointerType !== 'mouse') this.hideCursor(0.25);
+      return;
+    }
     if (!d || d.id !== e.pointerId) return;
     const tap = d.moved < TAP_PX && performance.now() - d.t0 < TAP_MS;
     // A tap on the piece shows / hides the rings; a tap on a ring (no turn) hides them too:
@@ -501,9 +598,40 @@ export class GrabControls {
     return ok;
   }
 
+  /** MOVE <-> ROTATE (the name is from the ring days). */
   toggleRings() {
     this.ringsOn = !this.ringsOn;
     this.app.audio.playTick();
+    this.app.vibrate(this.ringsOn ? [8, 40, 8] : 8);
+    this.app.hud.hideBanner(); // the corner badge shows the mode (a banner ran under it in side-by-side)
+    this.badgePulse = 1;
+  }
+
+  restartSpin(d) {
+    const v = [...d.pts.values()];
+    d.twist = v.length === 2 ? { last: Math.atan2(v[1].y - v[0].y, v[1].x - v[0].x), acc: 0 } : null;
+    d.anchor = v.length === 1 ? { ...v[0] } : null;
+  }
+
+  /** ROTATE mode gesture: one finger swipes roll the piece, two fingers twist it (same as the phone joypad). */
+  spinMove(d, e) {
+    const p = d.pts.get(e.pointerId);
+    p.x = e.clientX; p.y = e.clientY;
+    d.moved = Math.max(d.moved, Math.hypot(e.clientX - d.start.x, e.clientY - d.start.y));
+    const act = a => { this.app.handleAction(a); d.turned = true; this.app.vibrate(10); };
+    if (d.twist) {
+      const v = [...d.pts.values()];
+      const a = Math.atan2(v[1].y - v[0].y, v[1].x - v[0].x);
+      let da = a - d.twist.last; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+      d.twist.last = a; d.twist.acc += da;
+      if (Math.abs(d.twist.acc) >= TWIST_RAD) { act(d.twist.acc > 0 ? 'twistCW' : 'twistCCW'); d.twist.acc = 0; } // screen y down: growing angle = clockwise
+    } else if (d.anchor) {
+      const dx = p.x - d.anchor.x, dy = p.y - d.anchor.y;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) >= SWIPE_PX) {
+        act(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'spinR' : 'spinL') : (dy > 0 ? 'spinD' : 'spinU'));
+        d.anchor = { x: p.x, y: p.y };
+      }
+    }
   }
 
   /** The ✂ cutter: a blade runs along the ceiling bar and cuts the rope just under the pulley; the piece drops. */
@@ -622,7 +750,7 @@ export class GrabControls {
       const ray = this.toLocalRay(new THREE.Ray(origin, dir));
       const play = this.active;
       s.hand = src.handedness === 'left' ? 'left' : 'right';
-      const offHand = s.hand !== (this.app.settings.hand === 'left' ? 'left' : 'right');
+      const offHand = this.app.twin.enabled && s.hand !== this.app.twin.hand;
       // The twin's floor map (carried on the other hand) comes before anything in the well
       const twinHit = play && !offHand ? this.app.twin.hit(new THREE.Ray(origin, dir)) : null;
       const hit = play && !s.twist && !twinHit ? this.pick(ray) : null;
@@ -647,6 +775,11 @@ export class GrabControls {
         else if (hit.kind === 'ring') {
           s.drag = { kind: 'ring', axis: hit.axis, centre: hit.centre, last: this.ringAngle(hit.axis, hit.point.clone().sub(hit.centre)), acc: 0, turned: false, t0: performance.now() };
           this.ringMeshes[hit.axis].material.opacity = 1;
+        } else if (hit.kind === 'piece' && this.ringsOn) {
+          const head = well.worldToLocal(this.app.renderer.mainCamera.getWorldPosition(new THREE.Vector3()));
+          const n = head.clone().sub(hit.centre).normalize();
+          const right = new THREE.Vector3(0, 1, 0).cross(n).normalize(), up = n.clone().cross(right);
+          s.drag = { kind: 'spin3d', plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, hit.centre), right, up, last: hit.point.clone(), acc: new THREE.Vector2(), t0: performance.now(), turned: false };
         } else if (hit.kind === 'piece') {
           s.drag = { kind: 'move', plane: new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.centre.y), from: hit.point.clone(), t0: performance.now(), done: { x: 0, z: 0 }, bumped: false, moved: 0 };
         }
@@ -654,6 +787,20 @@ export class GrabControls {
       if (trig && s.drag) {
         const d = s.drag;
         if (d.kind === 'map') { if (twinHit && twinHit.kind === 'map') this.app.twin.moveToCell(twinHit.x, twinHit.z); }
+        else if (d.kind === 'spin3d') {
+          const p = new THREE.Vector3();
+          if (ray.intersectPlane(d.plane, p)) {
+            const step = p.clone().sub(d.last);
+            d.last = p;
+            d.acc.x += step.dot(d.right); d.acc.y += step.dot(d.up);
+            if (Math.max(Math.abs(d.acc.x), Math.abs(d.acc.y)) >= SPIN_CELLS) {
+              const a = Math.abs(d.acc.x) > Math.abs(d.acc.y) ? (d.acc.x > 0 ? 'spinR' : 'spinL') : (d.acc.y > 0 ? 'spinU' : 'spinD');
+              this.app.handleAction(a); d.turned = true; pulse(0.5, 25);
+              d.acc.set(0, 0);
+            }
+            s.cursor.position.copy(p);
+          }
+        }
         else if (d.kind === 'ring') {
           const n = AXES[d.axis], p = new THREE.Vector3();
           if (ray.intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(n, d.centre), p)) {
@@ -671,6 +818,10 @@ export class GrabControls {
             s.cursor.position.copy(p);
           }
         }
+      }
+      if (!trig && s.trig && s.drag && s.drag.kind === 'spin3d') {
+        if (!s.drag.turned && performance.now() - s.drag.t0 < TAP_MS) this.toggleRings();
+        s.drag = null;
       }
       if (!trig && s.trig && s.drag) {
         if (s.drag.kind === 'move' && s.drag.moved < 0.3 && performance.now() - s.drag.t0 < TAP_MS && !s.drag.done.x && !s.drag.done.z) this.toggleRings();
@@ -710,7 +861,7 @@ export class GrabControls {
 
   /** The controller in the hand that carries the twin (the one opposite the "hand" setting). */
   offHandController() {
-    const main = this.app.settings.hand === 'left' ? 'left' : 'right';
+    const main = this.app.twin.hand;
     const s = this.xr.find(x => x.hand && x.hand !== main);
     return s ? s.ctrl : null;
   }
@@ -757,6 +908,14 @@ export class GrabControls {
 
     // A tapped piece (rings showing) is drawn a little bigger
     app.well.pieceZoomTarget = info && this.ringsOn ? PIECE_ZOOM : 1;
+    app.well.rotateMode = !!(info && this.ringsOn);
+    // Mode badge
+    this.badge.visible = !!(live && info) && !app.inVR;
+    if (this.badge.visible) {
+      this.placeBadge(); this.drawBadge(this.ringsOn);
+      // A short pop when the mode changes
+      if (this.badgePulse > 0) { this.badgePulse = Math.max(0, this.badgePulse - dt * 4); this.badge.scale.multiplyScalar(1 + 0.25 * Math.sin(this.badgePulse * Math.PI)); }
+    }
 
     // Rope straight down from the pulley to the piece, while it waits and while it is lowered
     const roped = !!(live && info) && !this.skipRope;
@@ -773,7 +932,7 @@ export class GrabControls {
     if (this.wheelTarget !== undefined) this.wheel.rotation.x += (this.wheelTarget - this.wheel.rotation.x) * Math.min(1, 10 * dt);
 
     // Rotation rings around the piece
-    this.rings.visible = !!(info && this.ringsOn);
+    this.rings.visible = SHOW_RINGS && !!(info && this.ringsOn);
     if (this.rings.visible) this.updateRings(info);
 
     // Rope-cut recoil

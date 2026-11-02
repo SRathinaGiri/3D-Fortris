@@ -25,7 +25,7 @@ Small additions: E / D / S rotate the other way round, Restart mid-game asks fir
 | Action | Keyboard | Gamepad | In the 3D view (touch / mouse) | Quest | Phone joypad |
 |---|---|---|---|---|---|
 | Move | Arrows | D-pad / left stick | Drag the piece | Thumbstick · trigger-drag the piece · grip + move your hand | MOVE stick |
-| Rotate | Q / A / W (E / D / S reverse) | Y / X / B | Tap the piece → drag along a ring (red X, green Y, blue Z) | Trigger-drag a ring · grip + twist your wrist | SPIN: swipe to roll, two-finger twist · ⟲X ⟲Y ⟲Z |
+| Rotate | Q / A / W (E / D / S reverse) | Y / X / B | Tap the piece (or the MOVE/ROTATE badge), then swipe it · two-finger twist | Trigger on the piece to switch, then trigger-drag across it · grip + twist your wrist | SPIN: swipe to roll, two-finger twist · ⟲X ⟲Y ⟲Z |
 | Start falling | (by itself after 10 s) | | | | |
 | Hard drop (cut the rope) | Space | A | ✂ cutter at the end of the ceiling bar | Trigger on the cutter · A / X | ✂ Drop |
 | Turn camera | V / Shift+V | LB / RB | Drag the empty view | (walk around) | ↶ ↷ ⊡ |
@@ -33,10 +33,9 @@ Small additions: E / D / S rotate the other way round, Restart mid-game asks fir
 
 ### In-scene controls (v2.1)
 The flat touch pad sits at screen depth, so it never fuses in Cross-Eye / Parallel view. The controls now live **inside the 3D scene** (`js/grab.js`):
-- **The piece**: drag it to slide it, cell by cell, across the well. Tap it to show the **rotation rings**; drag along a ring and the piece turns 90° every ~57° of drag. You can still drag the piece to slide it while the rings show. To put them away, tap the piece again, tap a ring without dragging, or tap empty space (a drag on empty space still orbits). They stay on for the next pieces until you put them away.
+- **MOVE / ROTATE** (v2.4): the piece has two modes, shown by a big badge in the bottom corner (tap the badge to switch, too). **MOVE** (default): press and drag the piece to slide it, cell by cell, even while it falls. **Tap the piece** for **ROTATE**: it grows 15% and glows; swipe on it to roll it the way you swipe (camera-relative quarter turns), twist two fingers to turn it clockwise / anticlockwise. Tap again for MOVE. This replaced the X/Y/Z rings (`SHOW_RINGS` in `js/grab.js` brings them back). Quest: trigger on the piece toggles too; in ROTATE, trigger-drag across it rolls it.
 - **The pulley, countdown and cutter**: a gantry runs across the well's ceiling. The waiting piece hangs straight down on a rope from a pulley on its trolley, which follows the piece as you slide it. A countdown over the pulley (and ⏳ on the bar, ticking for the last 3 s) shows how long you have to line it up; at 0 the pulley unwinds by itself and lowers the piece at the level's speed. The **✂ cutter** sits at the end of the ceiling bar, just outside the wall on your side (well away from the piece): tap it and a blade runs along the bar and cuts the rope under the pulley, so the piece drops (hard drop). The rope itself no longer reacts to taps. If the piece lands on its rope, the pulley reels the rope back in.
-- **Tapped piece**: tapping the piece shows the rotation rings (now thicker) and draws the piece 15% bigger, so it's easier to see what you're turning.
-- **Twin + map** (v2.3, `js/twin.js`): touching the real piece fails once it falls (it moves away from your finger, you chase it and overshoot). So a still copy of the piece sits in a column under the NEXT panel (right) or the LAYERS panel (left: menu → Controls → ✋ Twin), seen exactly as the camera sees the real piece. **Swipe** it to roll the piece the way you swipe (camera-relative quarter turns), **twist two fingers** to turn it. Below it a **mini floor map**, turned to match the camera (up = away from you), shows each column's stack height (number and colour) and the piece's footprint; **touch or drag** on it and the real piece slides to that column, cell by cell, stopping at blocks. It hangs on the zero-parallax plane and draws over the scene, so it reads in every stereo mode.
+- **Twin + map** (v2.3, `js/twin.js`; optional since v2.4, off by default: menu → Controls → ✋ Twin + map: off / right / left): touching the real piece fails once it falls (it moves away from your finger, you chase it and overshoot). So a still copy of the piece sits in a column under the NEXT panel (right) or the LAYERS panel (left: menu → Controls → ✋ Twin), seen exactly as the camera sees the real piece. **Swipe** it to roll the piece the way you swipe (camera-relative quarter turns), **twist two fingers** to turn it. Below it a **mini floor map**, turned to match the camera (up = away from you), shows each column's stack height (number and colour) and the piece's footprint; **touch or drag** on it and the real piece slides to that column, cell by cell, stopping at blocks. It hangs on the zero-parallax plane and draws over the scene, so it reads in every stereo mode.
 - **3D cursor**: a glowing dot at the pointer, drawn for both eyes so it fuses. Over a side-by-side view the OS pointer is hidden (it only exists in one half).
 - **Per-eye picking**: a touch in either half of a side-by-side view is cast from *that* eye's camera (left / right, cross and swap respected), so a piece in front of or behind the screen plane is hit where you see it.
 - Touch pad **Auto** now hides the flat pad in side-by-side modes (On still forces it). Drag on empty space still orbits.
@@ -76,7 +75,7 @@ js/renderer.js  stereo engine (from 3D Labyrinth)
 js/hud3d.js     in-scene HUD, NEXT / LAYERS panels, 3D dialogs
 js/controls.js  keyboard / gamepad / Quest / orbit input
 js/twin.js      twin piece + floor map column (swipe to turn, touch the map to move)
-js/grab.js      in-scene controls: piece drag, rotation rings, ceiling pulley + rope + countdown, ✂ cutter, 3D cursor, Quest grab
+js/grab.js      in-scene controls: piece drag, MOVE / ROTATE badge + swipes, ceiling pulley + rope + countdown, ✂ cutter, 3D cursor, Quest grab
 js/audio.js     Web Audio synth
 js/ui.js        menu, settings, touch pad
 js/link.js      phone pairing (PeerJS)

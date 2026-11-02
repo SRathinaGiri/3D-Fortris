@@ -37,7 +37,7 @@ class GameApp {
     this.depth = 1.0;
     this.focusOffset = 0;
     this.progress = loadProgress();
-    this.settings = { opacity: 0.85, autoRotate: true, ghost: true, guides: true, panels: true, pad: 'auto', hand: 'right' };
+    this.settings = { opacity: 0.85, autoRotate: true, ghost: true, guides: true, panels: true, pad: 'auto', twin: 'off' };
     this.orbit = { theta: CAMERA.THETA, phi: CAMERA.PHI, zoom: 1, target: null, top: false, camPhi: CAMERA.PHI };
     this.vr = { mode: 'table', pending: false, frames: 0, head: null, fwd: null, yaw: 0, turn: 0 };
     this.vrHud = new THREE.Group();
