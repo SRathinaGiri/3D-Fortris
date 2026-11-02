@@ -7,7 +7,7 @@ Version 2 keeps the v1 game rules exactly and moves the game onto the 3D engine 
 ## Rules (unchanged from v1)
 - 10×10 floor, width/depth 6–14 (menu slider). **Height 12 / 15 / 20** (menu): 15 by default, because a tall well renders small in side-by-side 3D on a landscape phone; 20 is v1's *Classic* height.
 - A new piece **waits at the top** (⏸ HOLD on the bar). **DROP** (Space) releases it; DROP again is a **hard drop**.
-- Full layers clear: **100 × level** points per layer. 💣 Bomb removes the block under it: **+50**. Bombs are rarer than in v1: about 1 piece in 190 (v1: 1 in 66).
+- Full layers clear: **100 × level** points per layer. 💣 Bomb removes the block under it: **+50**. Bombs come about **1 piece in 10** (weight 1.44 against 13 for the other shapes), so a misplaced block can soon be blown away. v2.0 had 1 in 190, which left most games with none; v1 had 1 in 66.
 - A new level every **5 layers**: levels only make pieces fall faster (max(250, 1200 − 90 × level) ms) and multiply the points. The well carries on as it is; the level-up is a small notification. A new game always starts at level 1 (Continue resumes a saved game at its level).
 - Three pieces queued ("plan three steps ahead"). Game over when a new piece can't appear.
 - Moves are **relative to the camera** (↑ = away from you), as in v1.
@@ -18,7 +18,7 @@ Small additions: E / D / S rotate the other way round, Restart mid-game asks fir
 - **Modes**: 2D, Parallel SBS, Cross-Eye SBS, Anaglyph (red/cyan), Smart-Glasses HSBS (RayNeo / XREAL / Rokid / TCL) and **WebXR VR**.
 - **Auto stereo**: eye separation and focal plane follow the camera distance. Zero parallax sits at the well's centre, so the near half pops out of the screen.
 - **In-scene HUD** on the focal plane (works in every mode, both eyes): status bar, **NEXT** panel with the coming pieces as spinning 3D models, **LAYERS** panel (blocks each bottom layer still needs, stack height), a small notification strip at the bottom (clears, level-ups, bombs), and tappable 3D dialogs. The camera fits the well's actual outline below the bar, so it fills each eye.
-- **Scene**: bevelled glossy blocks with reflections, real shadows, see-through far walls, landing ghost + floor markers + drop guides, particle bursts for clears and bombs, a light wave on level-up, a grey-out on game over.
+- **Scene**: bevelled glossy blocks with reflections, real shadows, see-through far walls, a high-contrast landing ghost (white outlines, filled in the piece's colour, pulsing) with a bright tile on whatever each column will rest on, drop guides, particle bursts for clears and bombs, a light wave on level-up, a grey-out on game over.
 - **Camera**: drag to orbit, pinch / wheel to zoom, ↶ ↷ (V / Shift+V) quarter turns, ⊡ top view (T), optional auto-rotate.
 
 ## Controls

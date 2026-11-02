@@ -4,7 +4,7 @@
    Pure module (no THREE / DOM) so it can be unit-tested in Node.
    ========================================================================== */
 
-export const VERSION = '2.1.2';
+export const VERSION = '2.1.3';
 
 // 10×10 floor. Height 15 by default: a 20-high well renders very small in side-by-side 3D on a
 // landscape phone (each eye gets a square half). 20 stays available as "Classic" (v1's height).
@@ -42,8 +42,9 @@ export const SHAPES = [
   { name: 'Pillar', color: '#67e8f9', cells: [[0, 0, 0], [0, 0, 1]] },
   // Solo cube
   { name: 'Mono', color: '#a5b4fc', cells: [[0, 0, 0]] },
-  // Utility: weight 0.07 of 13.07 = about 1 piece in 190 (v1 had 0.2, about 1 in 66)
-  { name: 'Bomb', color: '#f43f5e', cells: [[0, 0, 0]], type: 'bomb', weight: 0.07 }
+  // Utility: weight 1.44 of 14.44 = about 1 piece in 10, so a mistake can be blown away soon
+  // (v1 had 0.2 = 1 in 66; v2.0 cut it to 0.07 = 1 in 190, which left most games with none)
+  { name: 'Bomb', color: '#f43f5e', cells: [[0, 0, 0]], type: 'bomb', weight: 1.44 }
 ];
 
 // Orbit camera around the well (theta / phi as in v1: x = r sinφ cosθ, z = r sinφ sinθ)

@@ -8,7 +8,9 @@
    ========================================================================== */
 
 const THEMES = ['#00f0ff', '#a855f7', '#34ff9a', '#ffc93c', '#ff4fa3', '#38bdf8', '#f97316'];
-const GHOST_COLOR = 0x38bdf8;
+// Landing ghost: filled in the falling piece's own colour, outlined in bright white, both pulsing. A fixed
+// blue ghost vanished against the cyan / blue floor and against blocks of a similar colour.
+const GHOST_EDGE = 0xffffff;
 const MAX_PIECE = 8;
 
 /** Soft studio reflections (canvas equirect -> PMREM), as in 3D Labyrinth's materials.js. */
@@ -96,10 +98,11 @@ export class WellView {
     this.gridTex = gridTexture();
     this.lockedMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.12, envMap: this.env, envMapIntensity: 0.6 });
     this.activeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0.1, envMap: this.env, envMapIntensity: 0.7, emissive: 0x000000 });
-    this.ghostMat = new THREE.MeshBasicMaterial({ color: GHOST_COLOR, transparent: true, opacity: 0.16, depthWrite: false });
-    this.ghostEdgeMat = new THREE.LineBasicMaterial({ color: GHOST_COLOR, transparent: true, opacity: 0.75 });
+    this.ghostMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false });
+    this.ghostEdgeMat = new THREE.LineBasicMaterial({ color: GHOST_EDGE, transparent: true, opacity: 0.95 });
     this.guideMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
-    this.markerMat = new THREE.MeshBasicMaterial({ color: GHOST_COLOR, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false });
+    this.markerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 
     this.active = new THREE.InstancedMesh(this.cubeGeo, this.activeMat, MAX_PIECE);
     // No shadow from the falling piece: it read as a second landing spot next to the ghost and markers
@@ -107,14 +110,20 @@ export class WellView {
     this.active.count = 0;
     this.ghost = new THREE.InstancedMesh(this.boxGeo, this.ghostMat, MAX_PIECE);
     this.ghost.count = 0;
+    this.ghost.renderOrder = 5;
+
     this.ghostEdges = new THREE.LineSegments(new THREE.BufferGeometry(), this.ghostEdgeMat);
     this.ghostEdges.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAX_PIECE * 24 * 3), 3));
     this.guides = new THREE.LineSegments(new THREE.BufferGeometry(), this.guideMat);
     this.guides.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAX_PIECE * 2 * 3), 3));
-    this.markers = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 28).rotateX(-Math.PI / 2), this.markerMat, MAX_PIECE);
+    // Landing tiles: a bright square on whatever each column will rest on (floor or block), so the spot
+    // reads even when the ghost has the same colour as the floor or the blocks below it
+    this.markers = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.84, 0.84).rotateX(-Math.PI / 2), this.markerMat, MAX_PIECE);
+    this.markers.renderOrder = 6;
     this.markers.count = 0;
     for (const o of [this.ghostEdges, this.guides]) o.frustumCulled = false;
     this.bomb = this.makeBomb();
+    this.ghostEdges.renderOrder = 6;
     this.well.add(this.active, this.ghost, this.ghostEdges, this.guides, this.markers, this.bomb);
 
     this.effects = [];
@@ -269,6 +278,7 @@ export class WellView {
     const dropped = landing && cells.length && landing[0].y !== cells[0].y;
     const ghost = this.showGhost && dropped ? landing : [];
     this.ghost.count = ghost.length;
+    if (color) this.ghostMat.color.set(color);
     const ep = this.ghostEdges.geometry.attributes.position, h = 0.49;
     let e = 0;
     ghost.forEach((c, i) => {
@@ -296,7 +306,7 @@ export class WellView {
     let n = 0, g = 0;
     for (const { land, from } of foot.values()) {
       this.cellPos(land.x, land.y, land.z, p);
-      this.markers.setMatrixAt(n++, m.makeTranslation(p.x, land.y + 0.01, p.z));
+      this.markers.setMatrixAt(n++, m.makeTranslation(p.x, land.y + 0.005, p.z));
       if (this.showGuides && dropped && from) {
         gp.setXYZ(g++, p.x, from.y, p.z);
         gp.setXYZ(g++, p.x, land.y + 1, p.z);
@@ -400,7 +410,10 @@ export class WellView {
     // Falling piece glows a little while it waits to be released (HOLD)
     if (this.activeColor) this.activeMat.emissive.copy(this.activeColor).multiplyScalar(gravityOn ? 0.18 : 0.18 + 0.14 * (1 + Math.sin(this.elapsed * 5)));
     if (this.bomb.visible) { this.spark.scale.setScalar(0.8 + Math.random() * 0.7); this.bomb.rotation.y += dt; }
-    this.markerMat.opacity = 0.35 + Math.sin(this.elapsed * 4) * 0.15;
+    const beat = 0.5 + 0.5 * Math.sin(this.elapsed * 5);
+    this.markerMat.opacity = 0.45 + beat * 0.45;
+    this.ghostMat.opacity = 0.32 + beat * 0.2;
+    this.ghostEdgeMat.opacity = 0.7 + beat * 0.3;
 
     for (let i = this.effects.length - 1; i >= 0; i--) {
       const e = this.effects[i];

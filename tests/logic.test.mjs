@@ -217,12 +217,14 @@ test('landing() finds the resting place without moving the piece', () => {
   assert.equal(g.active.position.y, 19);
 });
 
-test('random pieces come from the shape list, bombs rarely', () => {
+test('random pieces come from the shape list, a bomb about 1 piece in 10', () => {
   const { g } = make();
   const names = new Map();
-  for (let i = 0; i < 4000; i++) { const s = g.randomShape(); names.set(s.name, (names.get(s.name) || 0) + 1); }
+  const N = 4000;
+  for (let i = 0; i < N; i++) { const s = g.randomShape(); names.set(s.name, (names.get(s.name) || 0) + 1); }
   assert.equal(names.size, SHAPES.length);
-  assert.ok(names.get('Bomb') < names.get('Mono') * 0.12, 'bomb is about 1 piece in 190');
+  const share = names.get('Bomb') / N; // expected 1.44 / 14.44 = 0.0997
+  assert.ok(share > 0.07 && share < 0.13, `bomb share ${share} should be about 0.10`);
 });
 
 test('serialize -> restore resumes the exact game', () => {
