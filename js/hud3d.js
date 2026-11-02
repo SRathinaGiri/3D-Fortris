@@ -291,8 +291,9 @@ export class HUD3D {
   }
 
   /* ---------------- Status bar ---------------- */
-  setStatus({ level, score, lines, gravity, source, best }) {
-    const key = `${level}|${score}|${lines}|${gravity}|${source}|${best}`;
+  setStatus({ level, score, lines, gravity, source, best, hold = 0 }) {
+    const secs = gravity ? 0 : Math.ceil(hold);
+    const key = `${level}|${score}|${lines}|${gravity}|${source}|${best}|${secs}`;
     if (key === this.bar.key) return;
     this.bar.key = key;
     const g = this.bar.ctx, W = 1024, H = 128;
@@ -318,10 +319,10 @@ export class HUD3D {
       roundRect(g, 540 + i * 23, 92, 17, 10, 4); g.fill();
     }
 
-    // HOLD = waiting to be released (v1 rule), FALL = gravity on
+    // HOLD n = seconds before the waiting piece starts falling by itself, FALL = gravity on
     g.textAlign = 'center'; g.font = '800 40px system-ui, sans-serif';
-    g.fillStyle = gravity ? '#34ff9a' : '#ffc93c';
-    g.fillText(gravity ? '▼ FALL' : '⏸ HOLD', 820, H / 2 + 2);
+    g.fillStyle = gravity ? '#34ff9a' : secs <= 2 ? '#ff7a1a' : '#ffc93c';
+    g.fillText(gravity ? '▼ FALL' : secs ? `⏳ ${secs}` : '⏸ HOLD', 820, H / 2 + 2);
     g.font = '700 40px system-ui, sans-serif'; g.textAlign = 'right';
     g.fillStyle = '#64748b';
     g.fillText({ touch: '👆', keys: '⌨', pad: '🎮', vr: '🥽', remote: '📲' }[source] || '', 1000, H / 2 + 2);

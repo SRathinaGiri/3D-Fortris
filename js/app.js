@@ -12,7 +12,7 @@ import { HUD3D } from './hud3d.js';
 import { soundEngine } from './audio.js';
 import { UIManager } from './ui.js';
 import { TVLink } from './link.js';
-import { GrabControls, snapAxis, CEILING_FIT } from './grab.js';
+import { GrabControls, snapAxis, CEILING_FIT, CUTTER_OUT } from './grab.js';
 import { PROGRESS_KEY, loadProgress, saveProgress, parseProgress, mergeProgress, addScore } from './progress.js';
 
 // Buttons the phone controller may press (anything else on the data channel is ignored)
@@ -113,7 +113,7 @@ class GameApp {
     this.cam = null; // re-fit the camera to this well at once
     if (this.inVR) this.applyVR();
     this.state = 'PLAYING';
-    this.hud.showBanner(`LEVEL ${this.game.level}`, resume && saved ? 'Welcome back · tap the rope ⬇ to lower it' : 'Tap the rope ⬇ to lower it · tap again ✂ to cut', '#00f0ff', 2.2);
+    this.hud.showBanner(`LEVEL ${this.game.level}`, resume && saved ? 'Welcome back · line it up, it falls in 5 s' : 'Line it up: it falls in 5 s · ✂ cutter = drop now', '#00f0ff', 2.2);
   }
 
   togglePause() {
@@ -350,7 +350,8 @@ class GameApp {
     if (SPINS[a]) { if (playing) this.spin(...SPINS[a]); return; }
     switch (a) {
       case 'drop':
-        if (playing) this.game.release();
+        // The piece starts falling by itself after a few seconds, so DROP is always the quick drop (cut the rope)
+        if (playing) this.game.hardDrop();
         else if (this.state === 'MENU') this.startGame({ resume: !!this.progress.saved });
         break;
       case 'confirm': if (this.state === 'MENU') this.startGame({ resume: !!this.progress.saved }); break;
@@ -446,6 +447,11 @@ class GameApp {
       const v = new THREE.Vector3(x, y, z);
       pts.push({ x: v.dot(right), y: v.dot(up), z: v.dot(dir) });
     }
+    // ... and the cutter at either end of the ceiling bar, outside the walls
+    for (const z of [-D / 2 - CUTTER_OUT - 0.3, D / 2 + CUTTER_OUT + 0.3]) {
+      const v = new THREE.Vector3(0, H / 2 + CEILING_FIT - 0.4, z);
+      pts.push({ x: v.dot(right), y: v.dot(up), z: v.dot(dir) });
+    }
     const ndc = (d, lift) => {
       let minY = Infinity, maxY = -Infinity, maxX = 0;
       for (const p of pts) {
@@ -509,7 +515,7 @@ class GameApp {
     if (!this.link || !this.link.connected || now - (this.linkSentAt || 0) < 250) return;
     this.linkSentAt = now;
     const g = this.game;
-    this.link.send({ t: 'state', s: this.state, lv: g.level, score: g.score, lines: g.lines, hold: !g.gravity,
+    this.link.send({ t: 'state', s: this.state, lv: g.level, score: g.score, lines: g.lines, hold: !g.gravity, left: Math.ceil(g.holdLeft),
       next: g.queue.slice(0, 3).map(p => p.name), panel: this.hud.dialogSpec ? this.hud.dialogSpec.title : null });
   }
 
@@ -536,7 +542,10 @@ class GameApp {
     if (this.pendingOver) { this.pendingOver = false; this.flush(); this.gameOver(); }
     this.flush();
     const g = this.game;
-    this.hud.setStatus({ level: g.level, score: g.score, lines: g.lines, gravity: g.gravity || !g.active, source: this.controls.source, best: this.best });
+    this.hud.setStatus({ level: g.level, score: g.score, lines: g.lines, gravity: g.gravity || !g.active, source: this.controls.source, best: this.best, hold: g.holdLeft });
+    // Countdown ticks for the last three seconds before the piece starts falling
+    const secs = this.state === 'PLAYING' && !this.hud.dialogVisible ? Math.ceil(g.holdLeft) : 0;
+    if (secs !== this.lastHoldSecs) { if (secs > 0 && secs <= 3) this.audio.playTick(); this.lastHoldSecs = secs; }
     this.well.update(dt, g.gravity);
     this.hud.update(dt);
     this.updateCamera(dt);

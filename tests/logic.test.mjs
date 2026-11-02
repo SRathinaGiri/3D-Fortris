@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FortrisGame, rotateCell, directionalOffset, ROTATION_OFFSETS } from '../js/game.js';
-import { SHAPES, DEFAULT_WELL, QUEUE_LENGTH, dropDelay, clampWellSize, clampWellHeight } from '../js/config.js';
+import { SHAPES, DEFAULT_WELL, AUTO_RELEASE_MS, QUEUE_LENGTH, dropDelay, clampWellSize, clampWellHeight } from '../js/config.js';
 import { parseProgress, mergeProgress, fromLegacy, addScore, saveProgress, loadProgress, freshProgress, PROGRESS_KEY, LEGACY_KEY } from '../js/progress.js';
 
 const seeded = (seed = 7) => () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -48,8 +48,28 @@ test('a new game: 10x10x15 well, level 1, three queued, the piece waits at the t
   assert.equal(g.active.position.z, 5);
   const top = Math.max(...g.cellsOf().map(c => c.y));
   assert.equal(top, 14);
-  g.tick(30); // no gravity until released
+  g.tick(4.9); // waits AUTO_RELEASE_MS (5 s) before falling by itself
+  assert.equal(g.gravity, false);
   assert.equal(Math.max(...g.cellsOf().map(c => c.y)), 14);
+  assert.ok(Math.abs(g.holdLeft - 0.1) < 1e-9);
+});
+
+test('a waiting piece starts falling by itself after 5 s (v2.2); autoRelease 0 waits for release()', () => {
+  const { g, has } = make();
+  assert.equal(AUTO_RELEASE_MS, 5000);
+  g.tick(2.5); g.tick(2.5);
+  assert.equal(g.gravity, true);
+  assert.ok(has('release'));
+  assert.equal(g.holdLeft, 0);
+  const top = Math.max(...g.cellsOf().map(c => c.y));
+  g.tick(dropDelay(1) / 1000 + 0.001);
+  assert.equal(Math.max(...g.cellsOf().map(c => c.y)), top - 1, 'then falls at the level speed');
+  g.hardDrop();
+  assert.equal(g.gravity, false, 'the next piece waits again');
+  assert.equal(g.holdLeft, 5, 'with the full 5 s');
+  const manual = new FortrisGame({ size: 10, height: 15, rng: () => 0.3, autoRelease: 0 });
+  manual.tick(60);
+  assert.equal(manual.gravity, false);
 });
 
 test('well size is clamped to 6..14 and stays square', () => {

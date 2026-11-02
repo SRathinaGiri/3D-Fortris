@@ -5,7 +5,7 @@
      MOVE  virtual stick: push the knob towards a direction, hold to repeat
      SPIN  swipe to roll the piece the way you swipe (relative to the
            camera), twist two fingers to turn it clockwise / anticlockwise
-     DROP  ✂ release the waiting piece · ⤓ hard drop a falling one
+     DROP  ✂ cut the rope: the piece drops now (it also falls by itself after 5 s)
    ========================================================================== */
 
 import { PadLink } from './link.js';
@@ -39,11 +39,11 @@ function press(b) {
 }
 
 function showState(m) {
-  const fast = m.s === 'PLAYING' && !m.hold && !m.panel;
-  const label = m.panel || m.s === 'MENU' ? ['▶', m.panel ? 'OK' : 'Start'] : fast ? ['⤓', 'Fast drop'] : ['✂', 'Release'];
+  const fast = m.s === 'PLAYING' && !m.panel;
+  const label = m.panel || m.s === 'MENU' ? ['▶', m.panel ? 'OK' : 'Start'] : ['✂', m.hold && m.left ? `Drop now · falls in ${m.left}` : 'Drop'];
   $('dropIcon').textContent = label[0]; $('dropText').textContent = label[1];
   $('dropBtn').classList.toggle('fast', fast);
-  const names = { MENU: 'Menu', PLAYING: m.hold ? 'Line it up · DROP to release' : 'Falling', PAUSED: 'Paused', OVER: 'Game over' };
+  const names = { MENU: 'Menu', PLAYING: m.hold ? `Line it up · falls in ${m.left || 0} s` : 'Falling', PAUSED: 'Paused', OVER: 'Game over' };
   $('tvStatus').textContent = [`Level ${m.lv}`, `★ ${Number(m.score || 0).toLocaleString()}`, `${m.lines} layers`, names[m.s] || m.s].join(' · ');
   $('nextInfo').textContent = Array.isArray(m.next) && m.next.length ? `Next: ${m.next.join(' → ')}` : '';
   inPanel = !!m.panel;

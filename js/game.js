@@ -8,7 +8,7 @@
    happened through onEvent, and has no DOM / storage, so it runs in Node.
    ========================================================================== */
 
-import { DEFAULT_WELL, QUEUE_LENGTH, LAYERS_PER_LEVEL, SCORE, SHAPES, dropDelay, clampWellSize, clampWellHeight } from './config.js';
+import { DEFAULT_WELL, AUTO_RELEASE_MS, QUEUE_LENGTH, LAYERS_PER_LEVEL, SCORE, SHAPES, dropDelay, clampWellSize, clampWellHeight } from './config.js';
 
 const createLayer = size => Array.from({ length: size.depth }, () => Array.from({ length: size.width }, () => null));
 const createGrid = size => Array.from({ length: size.height }, () => createLayer(size));
@@ -89,9 +89,11 @@ export class FortrisGame {
    * @param {number} [o.height] well height (12 / 15 / 20)
    * @param {() => number} [o.rng] random source (seeded in tests)
    * @param {(type: string, data?: object) => void} [o.onEvent]
+   * @param {number} [o.autoRelease] ms a new piece waits before it starts falling by itself (0 = wait for release())
    */
-  constructor({ size = DEFAULT_WELL.width, height = DEFAULT_WELL.height, rng = Math.random, onEvent = () => {} } = {}) {
+  constructor({ size = DEFAULT_WELL.width, height = DEFAULT_WELL.height, rng = Math.random, onEvent = () => {}, autoRelease = AUTO_RELEASE_MS } = {}) {
     this.rng = rng;
+    this.autoRelease = autoRelease;
     this.onEvent = onEvent;
     this.reset(size, height);
   }
@@ -107,8 +109,9 @@ export class FortrisGame {
     this.level = 1;
     this.lines = 0;
     this.over = false;
-    this.gravity = false;  // a fresh piece waits until it is released
+    this.gravity = false;  // a fresh piece waits until it is released (or autoRelease runs out)
     this.dropTimer = 0;
+    this.holdTimer = 0;
     this.pieces = 0;
     this.queue = Array.from({ length: QUEUE_LENGTH + 1 }, () => this.createPiece());
     this.active = this.queue.shift();
@@ -218,9 +221,24 @@ export class FortrisGame {
     this.lock();
   }
 
-  /** Advance gravity by dt seconds (call only while playing). */
+  /** Seconds left before the waiting piece starts falling by itself (0 when falling or no auto-release). */
+  get holdLeft() {
+    if (this.gravity || !this.active || !this.autoRelease) return 0;
+    return Math.max(0, this.autoRelease - this.holdTimer) / 1000;
+  }
+
+  /** Advance gravity by dt seconds (call only while playing). A waiting piece is released after autoRelease ms. */
   tick(dt) {
-    if (this.over || !this.gravity || !this.active) return;
+    if (this.over || !this.active) return;
+    if (!this.gravity) {
+      if (!this.autoRelease) return;
+      this.holdTimer += dt * 1000;
+      if (this.holdTimer < this.autoRelease) return;
+      this.gravity = true;
+      this.dropTimer = 0;
+      this.emit('release', { auto: true });
+      return;
+    }
     this.dropTimer += dt * 1000;
     const delay = this.dropDelay;
     while (this.dropTimer >= delay && this.gravity && !this.over) {
@@ -296,6 +314,7 @@ export class FortrisGame {
     this.refillQueue();
     this.gravity = false;
     this.dropTimer = 0;
+    this.holdTimer = 0;
     if (!this.canPlace(candidate)) {
       this.active = null;
       this.over = true;
@@ -344,6 +363,7 @@ export class FortrisGame {
       this.refillQueue();
       this.score = s.score | 0; this.level = Math.max(1, s.level | 0); this.lines = s.lines | 0; this.pieces = s.pieces | 0;
       this.gravity = false;
+      this.holdTimer = 0; // a resumed game gives the full wait again
       if (!this.canPlace(this.active)) throw new Error('blocked');
       return true;
     } catch (_) {

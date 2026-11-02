@@ -125,6 +125,9 @@ export class WellView {
     // Less reflection than the falling piece: bright sky reflections washed every stack top to near-white
     this.lockedMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45, metalness: 0.08, envMap: this.env, envMapIntensity: 0.3 });
     this.settle = [];        // cells that just landed: { key, t }
+    this.pieceZoom = 1;      // the falling piece is drawn this much bigger, about its own centre (a tapped piece)
+    this.pieceZoomTarget = 1;
+    this.activeCells = [];
     this.lockedIndex = new Map(); // "x,y,z" -> { i, color } for the instance drawing that cell
     this.activeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0.1, envMap: this.env, envMapIntensity: 0.7, emissive: 0x000000 });
     this.ghostStripes = stripeTexture();
@@ -321,12 +324,9 @@ export class WellView {
     const isB = !!isBomb && cells.length > 0;
     this.bomb.visible = isB;
     this.active.count = isB ? 0 : cells.length;
-    if (isB) this.cellPos(cells[0].x, cells[0].y, cells[0].z, this.bomb.position);
-    else {
-      cells.forEach((c, i) => this.active.setMatrixAt(i, m.makeTranslation(...this.cellPos(c.x, c.y, c.z, p).toArray())));
-      this.active.instanceMatrix.needsUpdate = true;
-      if (color) { this.activeMat.color.set(color); this.activeColor = this.activeMat.color.clone(); }
-    }
+    this.activeCells = cells; this.activeIsBomb = isB;
+    this.placeActive();
+    if (!isB && color) { this.activeMat.color.set(color); this.activeColor = this.activeMat.color.clone(); }
 
     // Ghost: only when the piece is above its landing spot
     const dropped = landing && cells.length && landing[0].y !== cells[0].y;
@@ -369,6 +369,26 @@ export class WellView {
     this.markers.instanceMatrix.needsUpdate = true;
     gp.needsUpdate = true;
     this.guides.geometry.setDrawRange(0, g);
+  }
+
+  /** Falling piece's cubes (or the bomb), scaled by pieceZoom about the piece's centre so they stay together. */
+  placeActive() {
+    const cells = this.activeCells, z = this.pieceZoom, m = new THREE.Matrix4(), p = new THREE.Vector3();
+    if (!cells.length || !this.size) return;
+    const c = new THREE.Vector3();
+    cells.forEach(q => c.add(this.cellPos(q.x, q.y, q.z, p)));
+    c.divideScalar(cells.length);
+    if (this.activeIsBomb) {
+      this.cellPos(cells[0].x, cells[0].y, cells[0].z, this.bomb.position);
+      this.bomb.scale.setScalar(z);
+      return;
+    }
+    const sc = new THREE.Vector3(z, z, z), q4 = new THREE.Quaternion();
+    cells.forEach((q, i) => {
+      this.cellPos(q.x, q.y, q.z, p).sub(c).multiplyScalar(z).add(c);
+      this.active.setMatrixAt(i, m.compose(p, q4, sc));
+    });
+    this.active.instanceMatrix.needsUpdate = true;
   }
 
   /* ---------------- Effects ---------------- */
@@ -477,6 +497,12 @@ export class WellView {
       }
       this.locked.instanceColor.needsUpdate = true;
       this.settle = this.settle.filter(s => s.t < SETTLE_TIME);
+    }
+    // Tapped piece grows / shrinks smoothly
+    if (Math.abs(this.pieceZoom - this.pieceZoomTarget) > 1e-3) {
+      this.pieceZoom += (this.pieceZoomTarget - this.pieceZoom) * Math.min(1, 12 * dt);
+      if (Math.abs(this.pieceZoom - this.pieceZoomTarget) <= 1e-3) this.pieceZoom = this.pieceZoomTarget;
+      this.placeActive();
     }
     const beat = 0.5 + 0.5 * Math.sin(this.elapsed * 5);
     this.markerMat.opacity = 0.5 + beat * 0.45;

@@ -6,15 +6,15 @@
   <meta name="theme-color" content="#020617">
   <title>Fortris Controller</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
-  <link rel="stylesheet" href="./css/styles.css?v=2.1.5">
+  <link rel="stylesheet" href="./css/styles.css?v=2.2.0">
   <!-- PeerJS 1.5.5 (MIT, bundled locally): pairing with the game. See js/lib/peerjs.LICENSE.txt -->
   <script src="./js/lib/peerjs.min.js?v=1.5.5"></script>
   <!-- Same release pinning as the game: modules always load as one version -->
   <script type="importmap">
   {
     "imports": {
-      "./js/config.js": "./js/config.js?v=2.1.5",
-      "./js/link.js": "./js/link.js?v=2.1.5"
+      "./js/config.js": "./js/config.js?v=2.2.0",
+      "./js/link.js": "./js/link.js?v=2.2.0"
     }
   }
   </script>
@@ -41,7 +41,7 @@
           <div class="stick-knob" id="stickKnob"></div>
           <span class="joy-label">MOVE</span>
         </div>
-        <button class="joy-drop" id="dropBtn" data-b="drop" aria-label="Release the piece / hard drop"><span id="dropIcon">✂</span><small id="dropText">Release</small></button>
+        <button class="joy-drop" id="dropBtn" data-b="drop" aria-label="Drop the piece now (cut the rope)"><span id="dropIcon">✂</span><small id="dropText">Drop</small></button>
         <div class="joy-zone spin" id="spinZone" role="application" aria-label="Spin: swipe to roll the piece, twist two fingers to turn it">
           <span class="spin-hint">swipe to roll<br>✌ twist to turn</span>
           <span class="spin-flash" id="spinFlash"></span>
@@ -62,6 +62,6 @@
       <button class="link-btn" id="disconnectBtn">Disconnect</button>
     </section>
   </main>
-  <script type="module" src="./js/pad.js?v=2.1.5"></script>
+  <script type="module" src="./js/pad.js?v=2.2.0"></script>
 </body>
 </html>
