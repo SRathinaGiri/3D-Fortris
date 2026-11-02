@@ -116,6 +116,7 @@ export class UIManager {
     // Side-by-side needs a 2:1 view: on a landscape phone the pads then float over it (see CSS .dual)
     document.getElementById('gamePage').classList.toggle('dual', ['parallel', 'cross', 'hsbs'].includes(mode));
     this.app.renderer.setMode(mode);
+    if (!this.loading) this.syncPad();
     // Changed mid-game (a tap, so allowed): side-by-side modes need landscape, re-lock to match
     if (!this.loading && this.app.state !== 'MENU') this.app.lockOrientation();
   }
@@ -182,7 +183,9 @@ export class UIManager {
 
   syncPad() {
     const mode = this.app.settings.pad;
-    const on = mode === 'on' || (mode === 'auto' && matchMedia('(pointer: coarse)').matches);
+    // Auto: touch screens, but not side-by-side 3D: the flat pad can't fuse there, the in-scene controls
+    // (drag the piece, its rings, the rope and the ✂ / ⤓ post) take over. "On" still forces it.
+    const on = mode === 'on' || (mode === 'auto' && matchMedia('(pointer: coarse)').matches && !this.app.renderer.isDualView);
     $('gamePage').classList.toggle('pad-on', on);
     const b = $('padModeBtn');
     if (b) { b.textContent = `🕹 Touch pad: ${PAD_LABEL[mode]}`; b.classList.toggle('active', on); }

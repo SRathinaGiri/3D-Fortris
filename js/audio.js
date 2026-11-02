@@ -65,6 +65,12 @@ class SoundEngine {
 
   playBump() { if (this.ok()) this.tone(140, 0.07, { type: 'square', vol: 0.05 }); }
   playRotate() { if (this.ok()) this.tone(520, 0.07, { type: 'triangle', vol: 0.08, slideTo: 880 }); }
+  /** Rope cut: a short bright snip. */
+  playSnip() {
+    if (!this.ok()) return;
+    this.noise(0.07, { vol: 0.2, from: 7000, to: 2500 });
+    this.tone(1500, 0.05, { type: 'square', vol: 0.04, slideTo: 2200 });
+  }
   playRelease() { if (this.ok()) this.tone(880, 0.18, { type: 'sine', vol: 0.08, slideTo: 330 }); }
 
   playLock() {

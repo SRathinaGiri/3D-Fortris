@@ -322,3 +322,46 @@ details.fold[open] .fold-caret { transform: rotate(180deg); }
 .pad-btn.rot { color: #e9d5ff; border-color: rgba(168,85,247,0.5); }
 .pad-btn.drop { grid-column: 1 / -1; }
 .pad-next { color: var(--muted); font-size: 0.85rem; min-height: 1.3em; }
+
+/* ---------------- Phone joypad (controller.html, v2.1) ---------------- */
+.joy {
+  display: grid; width: 100%; gap: 12px; align-items: center; justify-items: center;
+  grid-template-columns: 1fr 1fr; grid-template-areas: "stick spin" "drop drop";
+}
+.joy-zone {
+  position: relative; width: 100%; max-width: 230px; aspect-ratio: 1; touch-action: none; user-select: none; -webkit-user-select: none;
+  border: 2px solid rgba(0,240,255,0.45); background: radial-gradient(circle, rgba(0,240,255,0.10), rgba(2,6,23,0.65));
+}
+.joy-zone.stick { grid-area: stick; border-radius: 50%; }
+.joy-zone.spin { grid-area: spin; border-radius: 24px; border-color: rgba(168,85,247,0.6); background: radial-gradient(circle, rgba(168,85,247,0.14), rgba(2,6,23,0.65)); }
+.stick-ring { position: absolute; inset: 22%; border-radius: 50%; border: 1px dashed rgba(0,240,255,0.35); }
+.stick-knob {
+  position: absolute; left: 50%; top: 50%; width: 38%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 35%, #e0fdff, var(--cyan)); box-shadow: 0 0 18px rgba(0,240,255,0.6);
+}
+.joy-label { position: absolute; left: 0; right: 0; bottom: -1.5em; text-align: center; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.2em; color: var(--muted); }
+.spin-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: #e9d5ff; font-size: 0.85rem; line-height: 1.5; pointer-events: none; opacity: 0.8; }
+.spin-flash { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 3rem; pointer-events: none; opacity: 0; transition: opacity 0.35s; }
+.spin-flash.show { opacity: 1; transition: none; }
+.joy-drop {
+  grid-area: drop; width: 100%; max-width: 420px; min-height: 84px; margin-top: 14px; border: none; border-radius: 22px; cursor: pointer; touch-action: manipulation;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 2rem; font-weight: 900; color: #020617; background: linear-gradient(135deg, var(--amber), #ff7a1a);
+  box-shadow: 0 6px 22px rgba(255,122,26,0.35);
+}
+.joy-drop small { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.joy-drop.fast { background: linear-gradient(135deg, #ff6b81, #ff3b5c); box-shadow: 0 6px 22px rgba(255,59,92,0.35); }
+.joy-drop:active { transform: scale(0.97); }
+.joy-row { grid-template-columns: repeat(4, 1fr); margin-top: 6px; }
+.joy-row .pad-btn { min-height: 52px; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .pad-page { max-width: 900px; }
+  .joy { grid-template-columns: 1fr auto 1fr; grid-template-areas: "stick drop spin"; }
+  .joy-zone { max-width: min(44vh, 230px); }
+  .joy-drop { width: 140px; min-height: 140px; margin-top: 0; border-radius: 50%; }
+  .pad-page { padding: 6px 12px; gap: 6px; }
+  .pad-page .app-header { display: none; }
+  .joy-card { gap: 6px; padding-top: 8px; padding-bottom: 8px; }
+  .joy-row { grid-template-columns: repeat(8, 1fr); margin-top: 18px; }
+  .joy-row .pad-btn { min-height: 44px; font-size: 1rem; }
+}

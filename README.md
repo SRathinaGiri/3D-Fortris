@@ -22,21 +22,30 @@ Small additions: E / D / S rotate the other way round, Restart mid-game asks fir
 - **Camera**: drag to orbit, pinch / wheel to zoom, ↶ ↷ (V / Shift+V) quarter turns, ⊡ top view (T), optional auto-rotate.
 
 ## Controls
-| Action | Keyboard | Gamepad | Quest | Touch pad / phone |
-|---|---|---|---|---|
-| Move | Arrows | D-pad / left stick | Thumbstick | ▲ ◀ ▶ ▼ |
-| Rotate X / Y / Z | Q / A / W (E / D / S reverse) | Y / X / B | Left trigger / right trigger / grip | ⟲X ⟲Y ⟲Z |
-| Release / hard drop | Space | A | A / X | DROP |
-| Turn camera | V / Shift+V | LB / RB | (walk around) | ↶ ↷ |
-| Pause | P / Esc | Start | B / Y | ⏸ |
+| Action | Keyboard | Gamepad | In the 3D view (touch / mouse) | Quest | Phone joypad |
+|---|---|---|---|---|---|
+| Move | Arrows | D-pad / left stick | Drag the piece | Thumbstick · trigger-drag the piece · grip + move your hand | MOVE stick |
+| Rotate | Q / A / W (E / D / S reverse) | Y / X / B | Tap the piece → drag along a ring (red X, green Y, blue Z) | Trigger-drag a ring · grip + twist your wrist | SPIN: swipe to roll, two-finger twist · ⟲X ⟲Y ⟲Z |
+| Release | Space | A | Tap the rope or the ✂ post | Trigger on the rope / post · A / X | ✂ Release |
+| Hard drop | Space again | A again | ⤓ on the post | Trigger on the post · A / X | ⤓ Fast drop |
+| Turn camera | V / Shift+V | LB / RB | Drag the empty view | (walk around) | ↶ ↷ ⊡ |
+| Pause | P / Esc | Start | ⏸ | B / Y | ⏸ |
 
-The on-screen pad shows automatically on touch screens (menu: Controls → Touch pad: Auto / On / Off). In side-by-side 3D on a landscape phone the pad and toolbar float, translucent, over the view's corners, so the 2:1 view can use the full screen height.
+### In-scene controls (v2.1)
+The flat touch pad sits at screen depth, so it never fuses in Cross-Eye / Parallel view. The controls now live **inside the 3D scene** (`js/grab.js`):
+- **The piece**: drag it to slide it, cell by cell, across the well. Tap it to show the **rotation rings**; drag along a ring and the piece turns 90° every ~57° of drag. The rings stay on for the next pieces until you tap a piece again.
+- **The rope and post**: a waiting piece hangs on a rope from a post at the well corner nearest you. Tap the rope (or the ✂ button) to **cut it**: the rope snaps and the piece falls. While it falls the button shows **⤓**: tap it for a hard drop. DROP / Space still work and snap the rope too.
+- **3D cursor**: a glowing dot at the pointer, drawn for both eyes so it fuses. Over a side-by-side view the OS pointer is hidden (it only exists in one half).
+- **Per-eye picking**: a touch in either half of a side-by-side view is cast from *that* eye's camera (left / right, cross and swap respected), so a piece in front of or behind the screen plane is hit where you see it.
+- Touch pad **Auto** now hides the flat pad in side-by-side modes (On still forces it). Drag on empty space still orbits.
+
+The on-screen pad shows automatically on touch screens in 2D / anaglyph (menu: Controls → Touch pad: Auto / On / Off).
 
 ## VR (Meta Quest)
-Tap **🥽 VR** in the Quest browser. Height isn't a problem in VR: the tower's size is set in metres whatever the row count, and its top sits just below eye level, so you look down into it. The well is placed relative to your head: **🪑 Table** (a 70 cm tower in front of you) or **🏙 Giant** (2.6 m, standing on the floor). Moves follow where you stand around the well. The pause panel has Recenter, Table/Giant and Exit VR.
+Tap **🥽 VR** in the Quest browser. Each controller has a pointer ray: pull the **trigger** on the piece to slide it, on a ring to turn it, on the rope or post to release / hard drop (trigger at nothing keeps the old rotations: right = Y, left = X). **Squeeze the grip** to hold the piece like a real block: twist your wrist ~50° for a quarter turn about the nearest axis, move your hand one cell to slide it; controllers pulse on each step. Height isn't a problem in VR: the tower's size is set in metres whatever the row count, and its top sits just below eye level, so you look down into it. The well is placed relative to your head: **🪑 Table** (a 70 cm tower in front of you) or **🏙 Giant** (2.6 m, standing on the floor). Moves follow where you stand around the well. The pause panel has Recenter, Table/Giant and Exit VR.
 
 ## 📲 Phone as controller
-Menu → Controls → **📲 Phone controller** shows a 6-digit code and the address of `controller.html`. Open it on a phone on the **same Wi-Fi**, enter the code, and use its D-pad, rotations, DROP and view buttons.
+Menu → Controls → **📲 Phone controller** shows a 6-digit code and the address of `controller.html`. Open it on a phone on the **same Wi-Fi**, enter the code, and use it as a **joypad**: MOVE stick (hold to repeat), SPIN pad (swipe to roll the piece the way you swipe, relative to the camera; twist two fingers to turn it clockwise / anticlockwise as you see it), a big ✂ Release / ⤓ Fast drop button that follows the game, plus ⟲X ⟲Y ⟲Z, OK, view and pause. In landscape the stick and spin pad sit either side of the drop button.
 As in 3D Labyrinth, the two devices are introduced once through the public **PeerJS** signalling server (`0.peerjs.com`, bundled PeerJS 1.5.5, MIT) with Google STUN; TURN relays are disabled, so button presses then go directly between the devices. Codes use their own namespace (`fortris3d-v1-`), so they never reach a Labyrinth screen.
 
 ## Run locally
@@ -64,6 +73,7 @@ js/well.js      three.js scene: well, blocks, ghost, effects
 js/renderer.js  stereo engine (from 3D Labyrinth)
 js/hud3d.js     in-scene HUD, NEXT / LAYERS panels, 3D dialogs
 js/controls.js  keyboard / gamepad / Quest / orbit input
+js/grab.js      in-scene controls: piece drag, rotation rings, rope + post, 3D cursor, Quest grab
 js/audio.js     Web Audio synth
 js/ui.js        menu, settings, touch pad
 js/link.js      phone pairing (PeerJS)

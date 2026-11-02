@@ -12,13 +12,19 @@ import { HUD3D } from './hud3d.js';
 import { soundEngine } from './audio.js';
 import { UIManager } from './ui.js';
 import { TVLink } from './link.js';
+import { GrabControls, snapAxis } from './grab.js';
 import { PROGRESS_KEY, loadProgress, saveProgress, parseProgress, mergeProgress, addScore } from './progress.js';
 
 // Buttons the phone controller may press (anything else on the data channel is ignored)
 const REMOTE_ACTIONS = new Set(['left', 'right', 'up', 'down', 'rotX', 'rotY', 'rotZ', 'rotX-', 'rotY-', 'rotZ-', 'drop',
-  'pause', 'confirm', 'focusPrev', 'focusNext', 'turnL', 'turnR', 'top', 'restart']);
+  'pause', 'confirm', 'focusPrev', 'focusNext', 'turnL', 'turnR', 'top', 'restart',
+  'spinL', 'spinR', 'spinU', 'spinD', 'twistCW', 'twistCCW']);
 const ROTATIONS = { rotX: ['x', 1], 'rotX-': ['x', -1], rotY: ['y', 1], 'rotY-': ['y', -1], rotZ: ['z', 1], 'rotZ-': ['z', -1] };
 const MOVES = new Set(['left', 'right', 'up', 'down']);
+// Camera-relative turns (phone joypad swipes): [camera axis, direction]. Swipe right = the near face moves right
+// (about camera-up); swipe up = the near face rolls up and away (about camera-right, negative); a clockwise
+// twist as you see it = about the axis pointing at you, negative.
+const SPINS = { spinR: ['up', 1], spinL: ['up', -1], spinU: ['right', -1], spinD: ['right', 1], twistCW: ['back', -1], twistCCW: ['back', 1] };
 const CLEAR_TITLES = ['', 'LAYER!', 'DOUBLE!', 'TRIPLE!', 'QUAD!'];
 const STEREO_RATIO = 0.035;   // eye separation as a fraction of viewing distance at Depth = 1.0
 const HALF_PI = Math.PI / 2;
@@ -51,6 +57,8 @@ class GameApp {
     this.ui = new UIManager(this);
     this.controls.bindOrbit(document.getElementById('viewportFrame'));
     this.controls.onAction = a => this.handleAction(a);
+    this.grab = new GrabControls(this);
+    this.grab.bind(document.getElementById('viewportFrame'));
     this.bindDialogPointer();
 
     document.addEventListener('visibilitychange', () => {
@@ -90,6 +98,7 @@ class GameApp {
       this.saveProgress();
     }
     this.well.clearEffects();
+    this.grab.reset();
     this.well.build(this.game.size, this.game.level);
     this.well.setOpacity(this.settings.opacity);
     this.dirty.grid = this.dirty.piece = true;
@@ -104,7 +113,7 @@ class GameApp {
     this.cam = null; // re-fit the camera to this well at once
     if (this.inVR) this.applyVR();
     this.state = 'PLAYING';
-    this.hud.showBanner(`LEVEL ${this.game.level}`, resume && saved ? 'Welcome back · DROP to release' : 'Press DROP to release the piece', '#00f0ff', 2.2);
+    this.hud.showBanner(`LEVEL ${this.game.level}`, resume && saved ? 'Welcome back · cut the rope ✂ or DROP' : 'Cut the rope ✂ (or DROP) to release', '#00f0ff', 2.2);
   }
 
   togglePause() {
@@ -184,7 +193,7 @@ class GameApp {
       case 'fall': this.dirty.piece = true; break;
       case 'bump': this.audio.playBump(); break;
       case 'rotate': this.audio.playRotate(); this.dirty.piece = true; break;
-      case 'release': this.audio.playRelease(); break;
+      case 'release': this.audio.playRelease(); this.grab.onRelease(); break;
       case 'harddrop': this.audio.playHardDrop(d.distance); break;
       case 'lock': this.audio.playLock(); this.vibrate(12); break;
       case 'bomb':
@@ -302,7 +311,7 @@ class GameApp {
       return [u * 2 - 1, 1 - v * 2];
     };
     this.controls.blockDrag = e => {
-      if (!this.hud.dialogVisible) return false; // a drag orbits the camera
+      if (!this.hud.dialogVisible) return this.grab.onPointerDown(e); // on the piece / rope / post: ours; elsewhere a drag orbits
       const i = this.hud.hitIndex(...toNdc(e));
       if (i >= 0) { this.hud.setFocus(i); this.dialogAction(this.hud.focusedAction()); }
       return true;
@@ -337,6 +346,7 @@ class GameApp {
     const playing = this.state === 'PLAYING' && !this.hud.dialogVisible;
     if (MOVES.has(a)) { if (playing) this.game.moveRelative(a, this.controlTheta()); return; }
     if (ROTATIONS[a]) { if (playing) this.game.rotate(...ROTATIONS[a]); return; }
+    if (SPINS[a]) { if (playing) this.spin(...SPINS[a]); return; }
     switch (a) {
       case 'drop':
         if (playing) this.game.release();
@@ -372,6 +382,15 @@ class GameApp {
     return Math.atan2(local.z, local.x);
   }
 
+  /** Quarter turn about one of the viewer's axes (right / up / back), snapped to the nearest grid axis. */
+  spin(which, dir) {
+    const q = this.renderer.mainCamera.getWorldQuaternion(new THREE.Quaternion());
+    const v = { right: new THREE.Vector3(1, 0, 0), up: new THREE.Vector3(0, 1, 0), back: new THREE.Vector3(0, 0, 1) }[which].applyQuaternion(q);
+    v.applyQuaternion(this.well.well.getWorldQuaternion(new THREE.Quaternion()).invert()); // into the well's frame (VR turns it)
+    const [axis, sign] = snapAxis(v);
+    this.game.rotate(axis, sign * dir);
+  }
+
   vibrate(p) { if (navigator.vibrate) { try { navigator.vibrate(p); } catch (_) { /* unsupported */ } } }
 
   /* ------------------------------ Camera ------------------------------ */
@@ -385,7 +404,7 @@ class GameApp {
     if (o.target !== null) {
       o.theta += (o.target - o.theta) * Math.min(1, 7 * dt);
       if (Math.abs(o.target - o.theta) < 0.002) { o.theta = o.target; o.target = null; }
-    } else if (this.settings.autoRotate && !input.dragging && !o.top && this.state === 'PLAYING') {
+    } else if (this.settings.autoRotate && !input.dragging && !this.grab.busy && !o.top && this.state === 'PLAYING') {
       o.theta += CAMERA.AUTO_ROTATE * dt;
     }
     o.camPhi += ((o.top ? CAMERA.TOP_PHI : o.phi) - o.camPhi) * Math.min(1, 6 * dt);
@@ -506,6 +525,7 @@ class GameApp {
     const xr = this.renderer.renderer.xr;
     if (xr.isPresenting) {
       this.controls.pollXR(xr.getSession(), dt);
+      this.grab.pollXR(xr.getSession());
       if (this.vr.pending && ++this.vr.frames > 3) this.placeVR(); // the head pose is known after a few XR frames
       this.hud.layout(VR.HUD.DIST, VR.HUD.FOV, VR.HUD.ASPECT);
     }
@@ -518,6 +538,7 @@ class GameApp {
     this.well.update(dt, g.gravity);
     this.hud.update(dt);
     this.updateCamera(dt);
+    this.grab.update(dt);
     this.renderer.render(this.scene);
   }
 
@@ -528,6 +549,7 @@ class GameApp {
     if (!navigator.xr) return;
     navigator.xr.isSessionSupported('immersive-vr').then(ok => {
       if (!ok) return;
+      this.grab.setupXR(); // controller rays for pointing at the piece, rope and post
       const btn = document.getElementById('webxrBtn');
       if (!btn) return;
       btn.style.display = 'inline-flex';

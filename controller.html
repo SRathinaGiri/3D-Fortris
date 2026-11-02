@@ -6,15 +6,15 @@
   <meta name="theme-color" content="#020617">
   <title>Fortris Controller</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
-  <link rel="stylesheet" href="./css/styles.css?v=2.0.1">
+  <link rel="stylesheet" href="./css/styles.css?v=2.1.0">
   <!-- PeerJS 1.5.5 (MIT, bundled locally): pairing with the game. See js/lib/peerjs.LICENSE.txt -->
   <script src="./js/lib/peerjs.min.js?v=1.5.5"></script>
   <!-- Same release pinning as the game: modules always load as one version -->
   <script type="importmap">
   {
     "imports": {
-      "./js/config.js": "./js/config.js?v=2.0.1",
-      "./js/link.js": "./js/link.js?v=2.0.1"
+      "./js/config.js": "./js/config.js?v=2.1.0",
+      "./js/link.js": "./js/link.js?v=2.1.0"
     }
   }
   </script>
@@ -32,29 +32,36 @@
       <p class="link-status" id="padStatus" role="status"></p>
     </section>
 
-    <section class="card hidden" id="padCard">
+    <section class="card hidden joy-card" id="padCard">
       <div class="pad-tv" id="tvStatus" role="status">Connected</div>
       <p class="pad-next" id="nextInfo"></p>
-      <div class="pad-dir">
-        <button class="pad-btn up" data-b="up" data-repeat="1" aria-label="Move away">▲</button>
-        <button class="pad-btn left" data-b="left" data-repeat="1" aria-label="Move left">◀</button>
-        <button class="pad-btn mid primary" data-b="confirm" aria-label="OK on the screen's panel">OK</button>
-        <button class="pad-btn right" data-b="right" data-repeat="1" aria-label="Move right">▶</button>
-        <button class="pad-btn down" data-b="down" data-repeat="1" aria-label="Move toward you">▼</button>
+      <div class="joy">
+        <div class="joy-zone stick" id="stickZone" role="application" aria-label="Move: drag the knob towards a direction">
+          <div class="stick-ring"></div>
+          <div class="stick-knob" id="stickKnob"></div>
+          <span class="joy-label">MOVE</span>
+        </div>
+        <button class="joy-drop" id="dropBtn" data-b="drop" aria-label="Release the piece / hard drop"><span id="dropIcon">✂</span><small id="dropText">Release</small></button>
+        <div class="joy-zone spin" id="spinZone" role="application" aria-label="Spin: swipe to roll the piece, twist two fingers to turn it">
+          <span class="spin-hint">swipe to roll<br>✌ twist to turn</span>
+          <span class="spin-flash" id="spinFlash"></span>
+          <span class="joy-label">SPIN</span>
+        </div>
       </div>
-      <div class="pad-grid">
+      <div class="pad-grid joy-row">
         <button class="pad-btn rot" data-b="rotX">⟲ X</button>
         <button class="pad-btn rot" data-b="rotY">⟲ Y</button>
         <button class="pad-btn rot" data-b="rotZ">⟲ Z</button>
-        <button class="pad-btn drop primary" data-b="drop">⤓ DROP</button>
-        <button class="pad-btn" data-b="turnL" aria-label="Turn the camera left">↶ View</button>
-        <button class="pad-btn" data-b="pause">⏸ Pause</button>
-        <button class="pad-btn" data-b="turnR" aria-label="Turn the camera right">View ↷</button>
+        <button class="pad-btn primary" data-b="confirm" aria-label="OK on the screen's panel">OK</button>
+        <button class="pad-btn" data-b="turnL" aria-label="Turn the camera left">↶</button>
+        <button class="pad-btn" data-b="top" aria-label="Top view">⊡</button>
+        <button class="pad-btn" data-b="turnR" aria-label="Turn the camera right">↷</button>
+        <button class="pad-btn" data-b="pause" aria-label="Pause">⏸</button>
       </div>
       <p class="hint" id="panelHint"></p>
       <button class="link-btn" id="disconnectBtn">Disconnect</button>
     </section>
   </main>
-  <script type="module" src="./js/pad.js?v=2.0.1"></script>
+  <script type="module" src="./js/pad.js?v=2.1.0"></script>
 </body>
 </html>

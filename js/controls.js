@@ -133,7 +133,7 @@ export class ControlsHandler {
   }
 
   edge(id, pressed, action, source) {
-    if (pressed && !this.padHeld[id]) this.fire(action, source);
+    if (pressed && !this.padHeld[id] && action) this.fire(action, source);
     this.padHeld[id] = pressed;
   }
 
@@ -161,8 +161,10 @@ export class ControlsHandler {
   }
 
   /**
-   * Quest controllers: either thumbstick moves, A / X drops (OK in panels), B / Y pauses,
-   * right trigger rotates Y, left trigger rotates X, either grip rotates Z.
+   * Quest controllers: either thumbstick moves, A / X drops (OK in panels), B / Y pauses.
+   * During play the trigger and grip belong to the in-scene controls (grab.js): point and pull the
+   * trigger at the piece, a ring, the rope or the post; squeeze the grip to hold and twist the piece.
+   * In a 3D panel the trigger is OK.
    */
   pollXR(xrSession, dt) {
     if (!xrSession) return;
@@ -175,8 +177,7 @@ export class ControlsHandler {
       const [x, y] = (ax.length >= 4 && Math.hypot(ax[2], ax[3]) > 0.2) ? [ax[2], ax[3]] : [ax[0] || 0, ax[1] || 0];
       if (Math.hypot(x, y) > 0.6) dir = Math.abs(x) > Math.abs(y) ? (x > 0 ? 'right' : 'left') : (y > 0 ? 'down' : 'up');
       const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
-      this.edge(`xr${hand}0`, b(0), this.menuMode ? 'confirm' : (hand === 'R' ? 'rotY' : 'rotX'), 'vr');
-      this.edge(`xr${hand}1`, b(1), 'rotZ', 'vr');
+      this.edge(`xr${hand}0`, b(0), this.menuMode ? 'confirm' : null, 'vr');
       this.edge(`xr${hand}4`, b(4), 'drop', 'vr');
       this.edge(`xr${hand}5`, b(5), 'pause', 'vr');
     }
