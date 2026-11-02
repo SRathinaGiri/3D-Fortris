@@ -12,6 +12,14 @@ const THEMES = ['#00f0ff', '#a855f7', '#34ff9a', '#ffc93c', '#ff4fa3', '#38bdf8'
 // among blocks of that colour, so each ghost cube cycles through the rainbow (each a step apart) and carries
 // moving diagonal stripes: no block is multi-coloured or striped, so it stands out even in grey-scale.
 // Its outline is also drawn faintly through anything in front, so a landing spot down a pit still shows.
+// Landed blocks are a darker shade of their piece's colour, so the bright falling piece never looks like
+// part of the stack; the cells that just landed flash bright and settle into that shade.
+const SOLID_LIGHTNESS = 0.58, SOLID_SATURATION = 0.9, SETTLE_TIME = 0.45;
+export function solidColor(hex, out = new THREE.Color()) {
+  const hsl = {};
+  out.set(hex).getHSL(hsl);
+  return out.setHSL(hsl.h, hsl.s * SOLID_SATURATION, hsl.l * SOLID_LIGHTNESS);
+}
 const GHOST_HUE_SPEED = 0.35;   // rainbow turns per second
 const GHOST_HUE_STEP = 0.17;    // hue offset between the ghost's cubes
 
@@ -114,7 +122,10 @@ export class WellView {
     this.cubeGeo = bevelCube();
     this.boxGeo = new THREE.BoxGeometry(0.97, 0.97, 0.97);
     this.gridTex = gridTexture();
-    this.lockedMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.12, envMap: this.env, envMapIntensity: 0.6 });
+    // Less reflection than the falling piece: bright sky reflections washed every stack top to near-white
+    this.lockedMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45, metalness: 0.08, envMap: this.env, envMapIntensity: 0.3 });
+    this.settle = [];        // cells that just landed: { key, t }
+    this.lockedIndex = new Map(); // "x,y,z" -> { i, color } for the instance drawing that cell
     this.activeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0.1, envMap: this.env, envMapIntensity: 0.7, emissive: 0x000000 });
     this.ghostStripes = stripeTexture();
     this.ghostMat = new THREE.MeshBasicMaterial({ color: 0xffffff, map: this.ghostStripes, transparent: true, opacity: 0.92, depthWrite: false });
@@ -286,11 +297,13 @@ export class WellView {
     if (!this.locked) return;
     const m = new THREE.Matrix4(), p = new THREE.Vector3(), col = new THREE.Color();
     let i = 0;
+    this.lockedIndex.clear();
     grid.forEach((layer, y) => layer.forEach((row, z) => row.forEach((cell, x) => {
       if (!cell) return;
       m.makeTranslation(...this.cellPos(x, y, z, p).toArray());
       this.locked.setMatrixAt(i, m);
-      this.locked.setColorAt(i, col.set(cell.color));
+      this.locked.setColorAt(i, solidColor(cell.color, col));
+      this.lockedIndex.set(`${x},${y},${z}`, { i, color: cell.color });
       i++;
     })));
     this.locked.count = i;
@@ -298,6 +311,9 @@ export class WellView {
     if (this.locked.instanceColor) this.locked.instanceColor.needsUpdate = true;
     this.fade = null;
   }
+
+  /** A piece just locked: its cells flash bright and darken into the solid shade. */
+  markSettled(cells) { this.settle = cells.map(c => ({ key: `${c.x},${c.y},${c.z}`, t: 0 })); }
 
   /** Falling piece, landing ghost, drop guides and footprint markers. */
   setActive(cells, color, isBomb, landing) {
@@ -436,6 +452,7 @@ export class WellView {
   }
 
   clearEffects() {
+    this.settle = [];
     for (const e of this.effects) { this.well.remove(e.obj); e.obj.geometry.dispose(); e.obj.material.dispose(); }
     this.effects = [];
     this.fade = null;
@@ -447,6 +464,20 @@ export class WellView {
     // Falling piece glows a little while it waits to be released (HOLD)
     if (this.activeColor) this.activeMat.emissive.copy(this.activeColor).multiplyScalar(gravityOn ? 0.18 : 0.18 + 0.14 * (1 + Math.sin(this.elapsed * 5)));
     if (this.bomb.visible) { this.spark.scale.setScalar(0.8 + Math.random() * 0.7); this.bomb.rotation.y += dt; }
+    // Just-landed cells: bright -> solid shade
+    if (this.settle.length && this.locked && this.locked.instanceColor) {
+      const bright = new THREE.Color(), dark = new THREE.Color();
+      for (const s of this.settle) {
+        s.t += dt;
+        const at = this.lockedIndex.get(s.key);
+        if (!at) continue;
+        const k = Math.min(1, s.t / SETTLE_TIME);
+        bright.set(at.color).lerp(new THREE.Color(0xffffff), 0.35 * (1 - k));
+        this.locked.setColorAt(at.i, bright.lerp(solidColor(at.color, dark), k * k));
+      }
+      this.locked.instanceColor.needsUpdate = true;
+      this.settle = this.settle.filter(s => s.t < SETTLE_TIME);
+    }
     const beat = 0.5 + 0.5 * Math.sin(this.elapsed * 5);
     this.markerMat.opacity = 0.5 + beat * 0.45;
     // Rainbow ghost: every cube a different hue, all turning; stripes marching along the faces

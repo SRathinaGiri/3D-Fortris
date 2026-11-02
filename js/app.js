@@ -195,7 +195,7 @@ class GameApp {
       case 'rotate': this.audio.playRotate(); this.dirty.piece = true; break;
       case 'release': this.audio.playRelease(); this.grab.onRelease(); break;
       case 'harddrop': this.audio.playHardDrop(d.distance); this.grab.onHardDrop(d.distance); break;
-      case 'lock': this.audio.playLock(); this.vibrate(12); this.grab.onLock(); break;
+      case 'lock': this.audio.playLock(); this.vibrate(12); this.grab.onLock(); this.well.markSettled(d.cells); break;
       case 'bomb':
         this.audio.playBomb(); this.vibrate([30, 30, 90]);
         this.well.bombBurst(d.at, d.removed);
@@ -205,6 +205,7 @@ class GameApp {
         const n = d.layers.length;
         this.audio.playClear(n); this.vibrate([20, 30, 40]);
         this.well.clearBurst(d.cells, d.layers);
+        this.well.settle = []; // the stack moved down: the flash would land on the wrong cells
         this.progress.totalLines += n;
         const title = n >= SCORE.PERFECT_LAYERS ? 'PERFECT CLEAR!' : CLEAR_TITLES[n] || `${n} LAYERS!`;
         this.hud.showBanner(title, `+${(n * SCORE.LAYER * g.level).toLocaleString()}`, '#34ff9a', 1.3);
