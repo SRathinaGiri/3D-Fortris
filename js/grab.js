@@ -14,10 +14,10 @@
        piece: tap it and a blade runs along the bar and cuts the rope, the
        piece drops (hard drop). The rope itself is not a button any more
        (it was too easy to hit by accident). On landing the pulley reels in.
-     - tap the piece to switch it between MOVE (default: press and drag slides
-       it) and ROTATE (it grows a little and glows; swipe on it to roll it the
-       way you swipe, twist two fingers to turn it). Tap again: back to MOVE.
-       (v2.4: replaces the X/Y/Z rings; the ring code stays, switched off)
+     - drag the piece to move it; tap it to open the orientation picker
+       (picker.js: every way it can turn, tap one). No modes (v2.6). The
+       ROTATE mode with swipes and the X/Y/Z rings of v2.1-2.5 are still in
+       here, switched off (ringsOn stays false, SHOW_RINGS = false)
      - a 3D cursor at the pointer, drawn for both eyes so it fuses too
      - Meta Quest: point and pull the trigger (same as a tap / drag), squeeze
        the grip to hold the piece and twist your wrist to turn it, move your
@@ -516,7 +516,7 @@ export class GrabControls {
     const tap = d.moved < TAP_PX && performance.now() - d.t0 < TAP_MS;
     // A tap on the piece shows / hides the rings; a tap on a ring (no turn) hides them too:
     // the rings cross in front of the piece, so "tap the piece again" often lands on one
-    if (tap && d.kind === 'move' && !d.done.x && !d.done.z) this.toggleRings();
+    if (tap && d.kind === 'move' && !d.done.x && !d.done.z) this.app.picker.show(); // tap: pick a turn
     if (tap && d.kind === 'ring' && !d.turned && this.ringsOn) this.toggleRings();
     if (d.kind === 'ring') this.ringMeshes[d.axis].material.opacity = 0.55;
     this.drag = null;
@@ -801,7 +801,7 @@ export class GrabControls {
         s.drag = null;
       }
       if (!trig && s.trig && s.drag) {
-        if (s.drag.kind === 'move' && s.drag.moved < 0.3 && performance.now() - s.drag.t0 < TAP_MS && !s.drag.done.x && !s.drag.done.z) this.toggleRings();
+        if (s.drag.kind === 'move' && s.drag.moved < 0.3 && performance.now() - s.drag.t0 < TAP_MS && !s.drag.done.x && !s.drag.done.z) this.app.picker.show();
         if (s.drag.kind === 'ring') {
           if (!s.drag.turned && performance.now() - s.drag.t0 < TAP_MS && this.ringsOn) this.toggleRings();
           this.ringMeshes[s.drag.axis].material.opacity = 0.55;
@@ -884,7 +884,7 @@ export class GrabControls {
     }
 
     // A tapped piece (rings showing) is drawn a little bigger
-    app.well.pieceZoomTarget = info && this.ringsOn ? PIECE_ZOOM : 1;
+    app.well.pieceZoomTarget = info && (this.ringsOn || app.picker.open) ? PIECE_ZOOM : 1; // the piece being turned stands out
     app.well.rotateMode = !!(info && this.ringsOn);
     // ROTATE sign just above the piece (nothing in MOVE mode)
     this.badge.visible = !!(live && info && this.ringsOn);

@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Fortris3D">
-  <link rel="stylesheet" href="./css/styles.css?v=2.5.0">
+  <link rel="stylesheet" href="./css/styles.css?v=2.6.0">
   <!-- Three.js r128, bundled locally so the PWA works fully offline -->
   <script src="./js/lib/three.min.js"></script>
   <!-- PeerJS 1.5.5 (MIT, bundled locally): phone-controller pairing only. See js/lib/peerjs.LICENSE.txt -->
@@ -33,7 +33,7 @@
           </g>
         </svg>
         <span>3D Fortris</span>
-        <span class="version-badge">v2.5.0</span>
+        <span class="version-badge">v2.6.0</span>
       </div>
       <div class="header-controls">
         <button class="icon-btn install-btn" id="installBtn" style="display:none" title="Install as an app on this device">📲 Install app</button>
@@ -84,7 +84,7 @@
           <tr><td><kbd>T</kbd> · <kbd>H</kbd></td><td>Top view · show/hide the Next &amp; Layers panels</td></tr>
           <tr><td><kbd>P</kbd> · <kbd>R</kbd> · <kbd>M</kbd></td><td>Pause · restart · sound</td></tr>
         </table>
-        <p class="hint"><strong>In the 3D view</strong> (works in side-by-side 3D too): drag the piece to slide it; <strong>tap it for ROTATE</strong> (⟳ above it): swipe on it to roll it, or tap it again to pick from every way it can turn. It falls by itself after the countdown; the ✂ cutter at the end of the ceiling bar, outside the wall, drops it at once.</p>
+        <p class="hint"><strong>In the 3D view</strong> (works in side-by-side 3D too): drag the piece to slide it; <strong>tap it</strong> to pick from every way it can turn. It falls by itself after the countdown; the ✂ cutter at the end of the ceiling bar, outside the wall, drops it at once.</p>
         <p class="hint">Drag the empty view to orbit, pinch or scroll to zoom. Gamepad: D-pad / stick move, A drop, X / Y / B rotate Y / X / Z, LB / RB turn the camera, Start pause.</p>
         </div>
       </details>
@@ -211,7 +211,7 @@
         <li>Pieces fall inside a <strong>3D well</strong>. Fill every cell of a horizontal layer to clear it: 100 points × your level per layer.</li>
         <li>A new piece <strong>hangs at the top</strong> on a rope from a pulley on the ceiling. You have <strong>10 seconds</strong> to line it up (the countdown shows over the pulley and on the bar); then the pulley unwinds by itself and lowers it at the level's speed. To drop it at once, tap the red <strong>✂ cutter</strong> at the end of the ceiling bar, just outside the wall (or <strong>DROP</strong> / <kbd>Space</kbd>): a blade runs along the bar and cuts the rope. The rope itself doesn't react to taps, so you can't cut it by accident.</li>
         <li><strong>Twin + map</strong> (optional, off by default; menu → Controls → ✋): a big copy of the falling piece that stays still, so you never chase the real one. <strong>Swipe the twin</strong> to roll the piece the way you swipe, <strong>twist two fingers</strong> on it to turn it. <strong>Touch or drag on the map</strong> under it (a top view of the well, turned to match your view, numbers = stack height) and the piece slides to that column.</li>
-        <li><strong>Touch the piece</strong>: every new piece starts in <strong>MOVE</strong>: press and drag it to slide it across the well, even while it falls. <strong>Tap it</strong> for <strong>ROTATE</strong> (a small turning ⟳ sign floats above it and it glows): swipe on it to roll it the way you swipe, or twist two fingers. <strong>Tap it again</strong> to see <strong>every way it can turn</strong> (3 to 24 pictures, flat ones first, the current one in gold): tap one and the piece turns to it and goes back to MOVE. A tap outside the pictures, or on empty space, also goes back to MOVE. A glowing cursor shows both eyes where you point, so this works in Cross-Eye and Parallel 3D.</li>
+        <li><strong>Touch the piece</strong>: <strong>drag it</strong> to slide it across the well, even while it falls. <strong>Tap it</strong> to see <strong>every way it can turn</strong> (3 to 24 pictures, flat ones first, the current one in gold): tap one and the piece turns to it. A tap outside the pictures closes them. A glowing cursor shows both eyes where you point, so this works in Cross-Eye and Parallel 3D.</li>
         <li>The <strong>ghost</strong> (rainbow-coloured, striped cubes: no real block looks like that) shows where the piece will land, even through blocks in front of it; the bright tiles mark what each column will rest on (the floor or a block), and the thin lines drop from each column.</li>
         <li><strong>Arrows follow the camera</strong>: ▲ always moves the piece away from you. Turn the view with ↶ ↷ (<kbd>V</kbd>), look straight down with ⊡ (<kbd>T</kbd>), or drag to orbit.</li>
         <li>Landed blocks turn a <strong>darker shade</strong> of their colour (they flash as they settle), so the bright falling piece always stands out from the stack.</li>
@@ -282,22 +282,22 @@
   <script type="importmap">
   {
     "imports": {
-      "./js/config.js": "./js/config.js?v=2.5.0",
-      "./js/game.js": "./js/game.js?v=2.5.0",
-      "./js/renderer.js": "./js/renderer.js?v=2.5.0",
-      "./js/well.js": "./js/well.js?v=2.5.0",
-      "./js/controls.js": "./js/controls.js?v=2.5.0",
-      "./js/hud3d.js": "./js/hud3d.js?v=2.5.0",
-      "./js/audio.js": "./js/audio.js?v=2.5.0",
-      "./js/ui.js": "./js/ui.js?v=2.5.0",
-      "./js/link.js": "./js/link.js?v=2.5.0",
-      "./js/progress.js": "./js/progress.js?v=2.5.0",
-      "./js/grab.js": "./js/grab.js?v=2.5.0",
-      "./js/twin.js": "./js/twin.js?v=2.5.0",
-      "./js/picker.js": "./js/picker.js?v=2.5.0"
+      "./js/config.js": "./js/config.js?v=2.6.0",
+      "./js/game.js": "./js/game.js?v=2.6.0",
+      "./js/renderer.js": "./js/renderer.js?v=2.6.0",
+      "./js/well.js": "./js/well.js?v=2.6.0",
+      "./js/controls.js": "./js/controls.js?v=2.6.0",
+      "./js/hud3d.js": "./js/hud3d.js?v=2.6.0",
+      "./js/audio.js": "./js/audio.js?v=2.6.0",
+      "./js/ui.js": "./js/ui.js?v=2.6.0",
+      "./js/link.js": "./js/link.js?v=2.6.0",
+      "./js/progress.js": "./js/progress.js?v=2.6.0",
+      "./js/grab.js": "./js/grab.js?v=2.6.0",
+      "./js/twin.js": "./js/twin.js?v=2.6.0",
+      "./js/picker.js": "./js/picker.js?v=2.6.0"
     }
   }
   </script>
-  <script type="module" src="./js/app.js?v=2.5.0"></script>
+  <script type="module" src="./js/app.js?v=2.6.0"></script>
 </body>
 </html>

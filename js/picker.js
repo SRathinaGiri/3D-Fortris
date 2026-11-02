@@ -1,10 +1,10 @@
 /* ==========================================================================
    3D FORTRIS - ORIENTATION PICKER
-   In ROTATE mode, a tap on the piece opens a grid of every distinct
+   A tap on the piece opens a grid of every distinct
    orientation of it (1 to 24: an I has 3, a T 12, the Edge 24), each drawn
    as a small 3D piece seen exactly as the camera sees the real one. Tap one:
-   the piece turns straight to it (game.orient, with wall kicks) and goes
-   back to MOVE. A tap outside the grid closes it (also back to MOVE).
+   the piece turns straight to it (game.orient, with wall kicks). A tap
+   outside the grid closes it. (A drag on the piece always moves it.)
    Flattest orientations come first (they fill layers); the current one is
    outlined. The grid hangs on the zero-parallax plane over the lower part
    of the view (the waiting piece stays visible at the top) and is drawn
