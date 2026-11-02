@@ -48,16 +48,17 @@ test('a new game: 10x10x15 well, level 1, three queued, the piece waits at the t
   assert.equal(g.active.position.z, 5);
   const top = Math.max(...g.cellsOf().map(c => c.y));
   assert.equal(top, 14);
-  g.tick(4.9); // waits AUTO_RELEASE_MS (5 s) before falling by itself
+  g.tick(9.9); // waits AUTO_RELEASE_MS (10 s) before falling by itself
   assert.equal(g.gravity, false);
   assert.equal(Math.max(...g.cellsOf().map(c => c.y)), 14);
   assert.ok(Math.abs(g.holdLeft - 0.1) < 1e-9);
 });
 
-test('a waiting piece starts falling by itself after 5 s (v2.2); autoRelease 0 waits for release()', () => {
+test('a waiting piece starts falling by itself after 10 s (v2.2.1); autoRelease 0 waits for release()', () => {
   const { g, has } = make();
-  assert.equal(AUTO_RELEASE_MS, 5000);
-  g.tick(2.5); g.tick(2.5);
+  assert.equal(AUTO_RELEASE_MS, 10000);
+  g.tick(5); assert.equal(g.gravity, false, 'still waiting at 5 s');
+  g.tick(5);
   assert.equal(g.gravity, true);
   assert.ok(has('release'));
   assert.equal(g.holdLeft, 0);
@@ -66,7 +67,7 @@ test('a waiting piece starts falling by itself after 5 s (v2.2); autoRelease 0 w
   assert.equal(Math.max(...g.cellsOf().map(c => c.y)), top - 1, 'then falls at the level speed');
   g.hardDrop();
   assert.equal(g.gravity, false, 'the next piece waits again');
-  assert.equal(g.holdLeft, 5, 'with the full 5 s');
+  assert.equal(g.holdLeft, 10, 'with the full 10 s');
   const manual = new FortrisGame({ size: 10, height: 15, rng: () => 0.3, autoRelease: 0 });
   manual.tick(60);
   assert.equal(manual.gravity, false);

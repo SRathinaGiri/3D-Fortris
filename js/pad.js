@@ -5,7 +5,7 @@
      MOVE  virtual stick: push the knob towards a direction, hold to repeat
      SPIN  swipe to roll the piece the way you swipe (relative to the
            camera), twist two fingers to turn it clockwise / anticlockwise
-     DROP  ✂ cut the rope: the piece drops now (it also falls by itself after 5 s)
+     DROP  ✂ cut the rope: the piece drops now (it also falls by itself after 10 s)
    ========================================================================== */
 
 import { PadLink } from './link.js';

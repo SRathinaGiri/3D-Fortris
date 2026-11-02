@@ -8,7 +8,7 @@
        tap the piece, a ring or empty space to put the rings away again
      - a gantry runs across the well's ceiling; the waiting piece hangs straight
        down on a rope from a pulley on its trolley, which follows the piece.
-       A countdown over the pulley: after 5 s the pulley unwinds by itself and
+       A countdown over the pulley: after 10 s the pulley unwinds by itself and
        lowers the piece at the level's speed (no tap needed). The ✂ cutter
        sits at the end of the ceiling bar, outside the wall and away from the
        piece: tap it and a blade runs along the bar and cuts the rope, the

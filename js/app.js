@@ -3,7 +3,7 @@
    Structure follows 3D Labyrinth's app.js; the rules live in game.js.
    ========================================================================== */
 
-import { VERSION, CAMERA, VR, SCORE } from './config.js';
+import { VERSION, CAMERA, VR, SCORE, AUTO_RELEASE_MS } from './config.js';
 import { FortrisGame } from './game.js';
 import { StereoRenderEngine } from './renderer.js';
 import { WellView } from './well.js';
@@ -113,7 +113,7 @@ class GameApp {
     this.cam = null; // re-fit the camera to this well at once
     if (this.inVR) this.applyVR();
     this.state = 'PLAYING';
-    this.hud.showBanner(`LEVEL ${this.game.level}`, resume && saved ? 'Welcome back · line it up, it falls in 5 s' : 'Line it up: it falls in 5 s · ✂ cutter = drop now', '#00f0ff', 2.2);
+    this.hud.showBanner(`LEVEL ${this.game.level}`, resume && saved ? `Welcome back · line it up, it falls in ${AUTO_RELEASE_MS / 1000} s` : `Line it up: it falls in ${AUTO_RELEASE_MS / 1000} s · ✂ cutter = drop now`, '#00f0ff', 2.2);
   }
 
   togglePause() {

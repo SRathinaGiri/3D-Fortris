@@ -4,7 +4,7 @@
    Pure module (no THREE / DOM) so it can be unit-tested in Node.
    ========================================================================== */
 
-export const VERSION = '2.2.0';
+export const VERSION = '2.2.1';
 
 // 10×10 floor. Height 15 by default: a 20-high well renders very small in side-by-side 3D on a
 // landscape phone (each eye gets a square half). 20 stays available as "Classic" (v1's height).
@@ -16,7 +16,7 @@ export const WELL_HEIGHTS = [12, 15, 20];
 
 // A new piece waits this long at the top (time to line it up), then starts falling by itself (v2.2;
 // before, the first DROP released it). DROP while it waits is a hard drop.
-export const AUTO_RELEASE_MS = 5000;
+export const AUTO_RELEASE_MS = 10000; // 5 s (in v2.2.0) was too short to decide
 
 export const QUEUE_LENGTH = 3;        // "Always plan three steps ahead"
 export const LAYERS_PER_LEVEL = 5;    // a new level every five cleared layers

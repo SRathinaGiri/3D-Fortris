@@ -6,7 +6,7 @@ Version 2 keeps the v1 game rules exactly and moves the game onto the 3D engine 
 
 ## Rules (unchanged from v1)
 - 10×10 floor, width/depth 6–14 (menu slider). **Height 12 / 15 / 20** (menu): 15 by default, because a tall well renders small in side-by-side 3D on a landscape phone; 20 is v1's *Classic* height.
-- A new piece **waits at the top for 5 seconds** (countdown on the bar and over the pulley) so you can line it up, then **falls by itself** (v2.2: before, the first DROP released it). **DROP** (Space) or the ✂ cutter is a **hard drop** at any time.
+- A new piece **waits at the top for 10 seconds** (countdown on the bar and over the pulley) so you can line it up, then **falls by itself** (v2.2: before, the first DROP released it). **DROP** (Space) or the ✂ cutter is a **hard drop** at any time.
 - Full layers clear: **100 × level** points per layer. 💣 Bomb removes the block under it: **+50**. Bombs come about **1 piece in 10** (weight 1.44 against 13 for the other shapes), so a misplaced block can soon be blown away. v2.0 had 1 in 190, which left most games with none; v1 had 1 in 66.
 - A new level every **5 layers**: levels only make pieces fall faster (max(250, 1200 − 90 × level) ms) and multiply the points. The well carries on as it is; the level-up is a small notification. A new game always starts at level 1 (Continue resumes a saved game at its level).
 - Three pieces queued ("plan three steps ahead"). Game over when a new piece can't appear.
@@ -26,7 +26,7 @@ Small additions: E / D / S rotate the other way round, Restart mid-game asks fir
 |---|---|---|---|---|---|
 | Move | Arrows | D-pad / left stick | Drag the piece | Thumbstick · trigger-drag the piece · grip + move your hand | MOVE stick |
 | Rotate | Q / A / W (E / D / S reverse) | Y / X / B | Tap the piece → drag along a ring (red X, green Y, blue Z) | Trigger-drag a ring · grip + twist your wrist | SPIN: swipe to roll, two-finger twist · ⟲X ⟲Y ⟲Z |
-| Start falling | (by itself after 5 s) | | | | |
+| Start falling | (by itself after 10 s) | | | | |
 | Hard drop (cut the rope) | Space | A | ✂ cutter at the end of the ceiling bar | Trigger on the cutter · A / X | ✂ Drop |
 | Turn camera | V / Shift+V | LB / RB | Drag the empty view | (walk around) | ↶ ↷ ⊡ |
 | Pause | P / Esc | Start | ⏸ | B / Y | ⏸ |
@@ -59,7 +59,7 @@ Then open http://localhost:8087. Everything else is bundled (three.js r128, soun
 ```bash
 npm test
 ```
-- `tests/logic.test.mjs`: the game rules (spawn, hold / 5 s auto-release, hard drop, wall kicks, clears, scoring, levels, bomb, game over, camera-relative moves, save/resume) and the high-score storage.
+- `tests/logic.test.mjs`: the game rules (spawn, hold / 10 s auto-release, hard drop, wall kicks, clears, scoring, levels, bomb, game over, camera-relative moves, save/resume) and the high-score storage.
 - `tests/version.test.mjs`: version in sync everywhere, every module cached by the service worker and pinned in the import map, installable icons, only approved outside hosts.
 
 ## Releasing

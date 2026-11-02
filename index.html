@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Fortris3D">
-  <link rel="stylesheet" href="./css/styles.css?v=2.2.0">
+  <link rel="stylesheet" href="./css/styles.css?v=2.2.1">
   <!-- Three.js r128, bundled locally so the PWA works fully offline -->
   <script src="./js/lib/three.min.js"></script>
   <!-- PeerJS 1.5.5 (MIT, bundled locally): phone-controller pairing only. See js/lib/peerjs.LICENSE.txt -->
@@ -33,7 +33,7 @@
           </g>
         </svg>
         <span>3D Fortris</span>
-        <span class="version-badge">v2.2.0</span>
+        <span class="version-badge">v2.2.1</span>
       </div>
       <div class="header-controls">
         <button class="icon-btn install-btn" id="installBtn" style="display:none" title="Install as an app on this device">📲 Install app</button>
@@ -47,7 +47,7 @@
       <section class="card hero">
         <h1 class="title">3D Fortris</h1>
         <p class="muted">Stack, rotate and clear entire <strong>3D layers</strong>. Each piece hangs at the top for
-          <strong class="green">5 seconds</strong> while you line it up, then falls by itself; cut its rope to drop it at once. Every five layers the drops get faster.</p>
+          <strong class="green">10 seconds</strong> while you line it up, then falls by itself; cut its rope to drop it at once. Every five layers the drops get faster.</p>
         <button class="action-btn" id="playBtn">▶ Play</button>
         <button class="action-btn ghost hidden" id="newGameBtn">↻ New game</button>
         <div class="size-row">
@@ -78,7 +78,7 @@
           <tr><td><kbd>Q</kbd> / <kbd>E</kbd></td><td>Rotate around X (E = the other way)</td></tr>
           <tr><td><kbd>A</kbd> / <kbd>D</kbd></td><td>Rotate around Y</td></tr>
           <tr><td><kbd>W</kbd> / <kbd>S</kbd></td><td>Rotate around Z</td></tr>
-          <tr><td><kbd>Space</kbd></td><td>Drop the piece now (cut the rope) · it also falls by itself after 5 s</td></tr>
+          <tr><td><kbd>Space</kbd></td><td>Drop the piece now (cut the rope) · it also falls by itself after 10 s</td></tr>
           <tr><td><kbd>V</kbd> / <kbd>Shift</kbd>+<kbd>V</kbd></td><td>Turn the camera 90°</td></tr>
           <tr><td><kbd>T</kbd> · <kbd>H</kbd></td><td>Top view · show/hide the Next &amp; Layers panels</td></tr>
           <tr><td><kbd>P</kbd> · <kbd>R</kbd> · <kbd>M</kbd></td><td>Pause · restart · sound</td></tr>
@@ -208,7 +208,7 @@
       <h3>How to play</h3>
       <ul>
         <li>Pieces fall inside a <strong>3D well</strong>. Fill every cell of a horizontal layer to clear it: 100 points × your level per layer.</li>
-        <li>A new piece <strong>hangs at the top</strong> on a rope from a pulley on the ceiling. You have <strong>5 seconds</strong> to line it up (the countdown shows over the pulley and on the bar); then the pulley unwinds by itself and lowers it at the level's speed. To drop it at once, tap the red <strong>✂ cutter</strong> at the end of the ceiling bar, just outside the wall (or <strong>DROP</strong> / <kbd>Space</kbd>): a blade runs along the bar and cuts the rope. The rope itself doesn't react to taps, so you can't cut it by accident.</li>
+        <li>A new piece <strong>hangs at the top</strong> on a rope from a pulley on the ceiling. You have <strong>10 seconds</strong> to line it up (the countdown shows over the pulley and on the bar); then the pulley unwinds by itself and lowers it at the level's speed. To drop it at once, tap the red <strong>✂ cutter</strong> at the end of the ceiling bar, just outside the wall (or <strong>DROP</strong> / <kbd>Space</kbd>): a blade runs along the bar and cuts the rope. The rope itself doesn't react to taps, so you can't cut it by accident.</li>
         <li><strong>Touch the piece</strong>: drag it to slide it across the well, tap it to show the rings (red X, green Y, blue Z) and drag along a ring to turn it. You can still slide it with the rings showing; tap the piece, a ring or empty space to hide them. A glowing cursor shows both eyes where you point, so this works in Cross-Eye and Parallel 3D.</li>
         <li>The <strong>ghost</strong> (rainbow-coloured, striped cubes: no real block looks like that) shows where the piece will land, even through blocks in front of it; the bright tiles mark what each column will rest on (the floor or a block), and the thin lines drop from each column.</li>
         <li><strong>Arrows follow the camera</strong>: ▲ always moves the piece away from you. Turn the view with ↶ ↷ (<kbd>V</kbd>), look straight down with ⊡ (<kbd>T</kbd>), or drag to orbit.</li>
@@ -280,20 +280,20 @@
   <script type="importmap">
   {
     "imports": {
-      "./js/config.js": "./js/config.js?v=2.2.0",
-      "./js/game.js": "./js/game.js?v=2.2.0",
-      "./js/renderer.js": "./js/renderer.js?v=2.2.0",
-      "./js/well.js": "./js/well.js?v=2.2.0",
-      "./js/controls.js": "./js/controls.js?v=2.2.0",
-      "./js/hud3d.js": "./js/hud3d.js?v=2.2.0",
-      "./js/audio.js": "./js/audio.js?v=2.2.0",
-      "./js/ui.js": "./js/ui.js?v=2.2.0",
-      "./js/link.js": "./js/link.js?v=2.2.0",
-      "./js/progress.js": "./js/progress.js?v=2.2.0",
-      "./js/grab.js": "./js/grab.js?v=2.2.0"
+      "./js/config.js": "./js/config.js?v=2.2.1",
+      "./js/game.js": "./js/game.js?v=2.2.1",
+      "./js/renderer.js": "./js/renderer.js?v=2.2.1",
+      "./js/well.js": "./js/well.js?v=2.2.1",
+      "./js/controls.js": "./js/controls.js?v=2.2.1",
+      "./js/hud3d.js": "./js/hud3d.js?v=2.2.1",
+      "./js/audio.js": "./js/audio.js?v=2.2.1",
+      "./js/ui.js": "./js/ui.js?v=2.2.1",
+      "./js/link.js": "./js/link.js?v=2.2.1",
+      "./js/progress.js": "./js/progress.js?v=2.2.1",
+      "./js/grab.js": "./js/grab.js?v=2.2.1"
     }
   }
   </script>
-  <script type="module" src="./js/app.js?v=2.2.0"></script>
+  <script type="module" src="./js/app.js?v=2.2.1"></script>
 </body>
 </html>
