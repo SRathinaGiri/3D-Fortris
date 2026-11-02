@@ -1,7 +1,7 @@
 // Rules of 3D Fortris (js/game.js) and saved progress (js/progress.js). Run: node --test tests/
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FortrisGame, rotateCell, directionalOffset, ROTATION_OFFSETS } from '../js/game.js';
+import { FortrisGame, rotateCell, directionalOffset, ROTATION_OFFSETS, orientations, orientationKey } from '../js/game.js';
 import { SHAPES, DEFAULT_WELL, AUTO_RELEASE_MS, QUEUE_LENGTH, dropDelay, clampWellSize, clampWellHeight } from '../js/config.js';
 import { parseProgress, mergeProgress, fromLegacy, addScore, saveProgress, loadProgress, freshProgress, PROGRESS_KEY, LEGACY_KEY } from '../js/progress.js';
 
@@ -305,4 +305,31 @@ test('v1 progress (3dtris-progress) is carried over once', () => {
   assert.equal(p.scores[0].score, 2500);
   assert.equal(loadProgress(memory({ [LEGACY_KEY]: legacy })).scores[0].level, 3);
   assert.equal(parseProgress('{broken'), null);
+});
+
+test('orientations: every distinct turn of each shape, the current one first (orientation picker)', () => {
+  const count = n => orientations(shape(n).cells).length;
+  assert.equal(count('Mono'), 1);
+  assert.equal(count('Cube'), 1);
+  assert.equal(count('I'), 3);
+  assert.equal(count('T'), 12);
+  assert.equal(count('Edge'), 24); // no symmetry at all: all 24 turns differ
+  for (const s of SHAPES) {
+    const all = orientations(s.cells);
+    assert.ok(all.length >= 1 && all.length <= 24);
+    assert.equal(orientationKey(all[0]), orientationKey(s.cells), `${s.name}: current orientation first`);
+    assert.equal(new Set(all.map(orientationKey)).size, all.length, `${s.name}: no duplicates`);
+  }
+});
+
+test('orient() turns the piece straight to a picked orientation, with wall kicks', () => {
+  const { g, has } = make();
+  g.active = g.createPiece(shape('I'));
+  const all = orientations(g.active.cells);
+  const upright = all.find(c => new Set(c.map(q => q[1])).size === 4); // the I standing on end
+  assert.ok(upright);
+  assert.equal(g.orient(upright), true);
+  assert.ok(has('rotate'));
+  assert.equal(orientationKey(g.active.cells), orientationKey(upright));
+  for (const c of g.cellsOf()) assert.ok(c.y >= 0 && c.y < g.size.height, 'kicked inside the well');
 });

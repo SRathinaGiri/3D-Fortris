@@ -133,60 +133,30 @@ export class GrabControls {
     return s;
   }
 
-  /** Big MOVE / ROTATE badge in a bottom corner of the view (screen depth, so it fuses); tap it to switch. */
+  /** Small ⟳ sign floating just above the piece, shown only in ROTATE mode (where you are looking anyway). */
   buildBadge() {
-    this.badgeCanvas = document.createElement('canvas');
-    this.badgeCanvas.width = 256; this.badgeCanvas.height = 300;
-    this.badgeTex = new THREE.CanvasTexture(this.badgeCanvas);
-    this.badgeTex.minFilter = THREE.LinearFilter;
-    this.badge = new THREE.Mesh(new THREE.PlaneGeometry(1, 300 / 256),
-      new THREE.MeshBasicMaterial({ map: this.badgeTex, transparent: true, depthTest: false, depthWrite: false }));
-    this.badge.renderOrder = 1020;
-    this.badge.frustumCulled = false;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const g = cv.getContext('2d'), col = '#c084fc';
+    g.fillStyle = 'rgba(2,6,23,0.78)';
+    g.beginPath(); g.arc(64, 64, 58, 0, Math.PI * 2); g.fill();
+    g.lineWidth = 6; g.strokeStyle = col; g.stroke();
+    g.lineWidth = 10; g.lineCap = 'round';
+    g.beginPath(); g.arc(64, 64, 30, -Math.PI * 0.3, Math.PI * 1.4); g.stroke();
+    const a = -Math.PI * 0.3, x = 64 + Math.cos(a) * 30, y = 64 + Math.sin(a) * 30, d = a + Math.PI / 2 + 0.2;
+    g.fillStyle = col;
+    g.beginPath();
+    g.moveTo(x + Math.cos(d) * 16, y + Math.sin(d) * 16);
+    g.lineTo(x + Math.cos(d + 2.4) * 14, y + Math.sin(d + 2.4) * 14);
+    g.lineTo(x + Math.cos(d - 2.4) * 14, y + Math.sin(d - 2.4) * 14);
+    g.closePath(); g.fill();
+    const tex = new THREE.CanvasTexture(cv);
+    tex.minFilter = THREE.LinearFilter;
+    this.badge = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
+    this.badge.renderOrder = 985;
     this.badge.visible = false;
-    this.badgeMode = null;
-    this.badgeParent = null;
-  }
-
-  drawBadge(rotate) {
-    if (this.badgeMode === rotate) return;
-    this.badgeMode = rotate;
-    const g = this.badgeCanvas.getContext('2d'), col = rotate ? '#c084fc' : '#00f0ff';
-    g.clearRect(0, 0, 256, 300);
-    g.fillStyle = 'rgba(2,6,23,0.82)';
-    g.beginPath(); g.arc(128, 124, 112, 0, Math.PI * 2); g.fill();
-    g.lineWidth = 10; g.strokeStyle = col; g.stroke();
-    g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 16; g.lineCap = 'round'; g.lineJoin = 'round';
-    const head = (x, y, ang) => { // filled arrow head pointing along ang
-      g.beginPath();
-      g.moveTo(x + Math.cos(ang) * 26, y + Math.sin(ang) * 26);
-      g.lineTo(x + Math.cos(ang + 2.4) * 22, y + Math.sin(ang + 2.4) * 22);
-      g.lineTo(x + Math.cos(ang - 2.4) * 22, y + Math.sin(ang - 2.4) * 22);
-      g.closePath(); g.fill();
-    };
-    if (rotate) { // circular arrow
-      g.beginPath(); g.arc(128, 124, 56, -Math.PI * 0.35, Math.PI * 1.35); g.stroke();
-      const a = -Math.PI * 0.35, x = 128 + Math.cos(a) * 56, y = 124 + Math.sin(a) * 56;
-      head(x + 6, y + 4, a + Math.PI / 2 + 0.25);
-    } else { // four-way arrows
-      g.beginPath(); g.moveTo(128, 60); g.lineTo(128, 188); g.moveTo(64, 124); g.lineTo(192, 124); g.stroke();
-      head(128, 52, -Math.PI / 2); head(128, 196, Math.PI / 2); head(56, 124, Math.PI); head(200, 124, 0);
-    }
-    g.font = '900 46px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillStyle = col; g.fillText(rotate ? 'ROTATE' : 'MOVE', 128, 270);
-    this.badgeTex.needsUpdate = true;
-  }
-
-  /** Bottom corner, opposite the twin column when that is on (right otherwise). */
-  placeBadge() {
-    const hud = this.app.hud, info = hud.layoutInfo;
-    if (!info) return;
-    if (this.badgeParent !== hud.parent) { hud.parent.add(this.badge); this.badgeParent = hud.parent; }
-    const { viewW, viewH, distance, margin } = info;
-    const side = this.app.twin.enabled && this.app.twin.hand === 'right' ? -1 : 1;
-    const w = Math.min(viewH * 0.17, viewW * 0.2), h = w * 300 / 256;
-    this.badge.scale.set(w, w, 1);
-    this.badge.position.set(side * (viewW / 2 - w / 2 - margin), -viewH / 2 + h / 2 + margin, -distance * 0.996);
+    this.root.add(this.badge);
+    this.badgeSpin = 0;
   }
 
   /** Ceiling gantry: a frame over the rim, a bridge across it and a trolley that carries the rope and the ✂ / ⤓ button. */
@@ -438,16 +408,6 @@ export class GrabControls {
     }
     if (this.drag || this.app.inVR) return false;
     if (e.pointerType === 'mouse' && e.button !== 0) return false;
-    if (this.badge.visible) {
-      this.raycaster.ray.copy(this.eyeRay(e).ray);
-      if (this.raycaster.intersectObject(this.badge, false).length) {
-        this.app.audio.ensureContext();
-        this.toggleRings();
-        this.badge.scale.multiplyScalar(0.9); // pressed; placeBadge() restores it next frame
-        this.drag = { id: e.pointerId, kind: 'done' };
-        return true;
-      }
-    }
     const { ray: wr, cam, view } = this.eyeRay(e);
     const ray = this.toLocalRay(wr);
     const hit = this.pick(ray);
@@ -547,7 +507,7 @@ export class GrabControls {
     if (d && d.kind === 'spin') {
       if (!d.pts.delete(e.pointerId)) return;
       if (d.pts.size) { this.restartSpin(d); return; }
-      if (d.moved < TAP_PX && performance.now() - d.t0 < TAP_MS && !d.turned) this.toggleRings(); // tap: back to MOVE
+      if (d.moved < TAP_PX && performance.now() - d.t0 < TAP_MS && !d.turned) this.app.picker.show(); // tap in ROTATE: the orientation picker
       this.drag = null;
       if (e.pointerType !== 'mouse') this.hideCursor(0.25);
       return;
@@ -598,13 +558,18 @@ export class GrabControls {
     return ok;
   }
 
+  /** A new piece always starts in MOVE mode. */
+  onSpawn() { this.ringsOn = false; this.badgePulse = 0; if (this.drag && this.drag.kind === 'spin') this.drag = null; }
+
+  /** true = ROTATE, false = MOVE. */
+  setMode(rotate) { if (this.ringsOn !== rotate) this.toggleRings(); }
+
   /** MOVE <-> ROTATE (the name is from the ring days). */
   toggleRings() {
     this.ringsOn = !this.ringsOn;
     this.app.audio.playTick();
     this.app.vibrate(this.ringsOn ? [8, 40, 8] : 8);
-    this.app.hud.hideBanner(); // the corner badge shows the mode (a banner ran under it in side-by-side)
-    this.badgePulse = 1;
+    this.badgePulse = this.ringsOn ? 1 : 0;
   }
 
   restartSpin(d) {
@@ -764,6 +729,18 @@ export class GrabControls {
       const hand = src.handedness === 'left' ? 'L' : 'R';
       const trig = b(0), grip = b(1);
 
+      // Orientation picker open: the trigger picks a tile (or closes it, pointing elsewhere)
+      if (this.app.picker.open && s.hand && !offHand) {
+        const ph = this.app.picker.hit(new THREE.Ray(origin, dir));
+        s.line.material.color.set(ph !== null ? 0xffd34d : 0x00f0ff);
+        s.cursor.visible = false;
+        if (trig && !s.trig) {
+          if (ph === null) { this.app.picker.hide(); this.setMode(false); }
+          else if (ph >= 0) { this.app.picker.choose(ph); pulse(0.5, 25); }
+        }
+        s.trig = trig; s.grip = grip;
+        return;
+      }
       // Trigger: press = tap on what the ray points at; hold on the piece / a ring = drag
       if (trig && !s.trig && !this.app.controls.menuMode && twinHit) {
         if (twinHit.kind === 'map') { s.drag = { kind: 'map' }; this.app.twin.moveToCell(twinHit.x, twinHit.z); pulse(0.3, 15); }
@@ -820,7 +797,7 @@ export class GrabControls {
         }
       }
       if (!trig && s.trig && s.drag && s.drag.kind === 'spin3d') {
-        if (!s.drag.turned && performance.now() - s.drag.t0 < TAP_MS) this.toggleRings();
+        if (!s.drag.turned && performance.now() - s.drag.t0 < TAP_MS) this.app.picker.show();
         s.drag = null;
       }
       if (!trig && s.trig && s.drag) {
@@ -909,13 +886,18 @@ export class GrabControls {
     // A tapped piece (rings showing) is drawn a little bigger
     app.well.pieceZoomTarget = info && this.ringsOn ? PIECE_ZOOM : 1;
     app.well.rotateMode = !!(info && this.ringsOn);
-    // Mode badge
-    this.badge.visible = !!(live && info) && !app.inVR;
+    // ROTATE sign just above the piece (nothing in MOVE mode)
+    this.badge.visible = !!(live && info && this.ringsOn);
     if (this.badge.visible) {
-      this.placeBadge(); this.drawBadge(this.ringsOn);
-      // A short pop when the mode changes
-      if (this.badgePulse > 0) { this.badgePulse = Math.max(0, this.badgePulse - dt * 4); this.badge.scale.multiplyScalar(1 + 0.25 * Math.sin(this.badgePulse * Math.PI)); }
+      const zoom = app.well.pieceZoom || 1;
+      this.badge.position.set(info.centre.x, info.centre.y + info.half.y * zoom + 0.75, info.centre.z);
+      let k = 0.85;
+      if (this.badgePulse > 0) { this.badgePulse = Math.max(0, this.badgePulse - dt * 4); k *= 1 + 0.35 * Math.sin(this.badgePulse * Math.PI); }
+      this.badge.scale.setScalar(k);
+      this.badgeSpin += dt * 2.2;
+      this.badge.material.rotation = -this.badgeSpin; // turns slowly, clockwise
     }
+
 
     // Rope straight down from the pulley to the piece, while it waits and while it is lowered
     const roped = !!(live && info) && !this.skipRope;

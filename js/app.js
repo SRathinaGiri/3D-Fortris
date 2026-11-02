@@ -14,6 +14,7 @@ import { UIManager } from './ui.js';
 import { TVLink } from './link.js';
 import { GrabControls, snapAxis, CEILING_FIT, CUTTER_OUT } from './grab.js';
 import { TwinControl } from './twin.js';
+import { OrientationPicker } from './picker.js';
 import { PROGRESS_KEY, loadProgress, saveProgress, parseProgress, mergeProgress, addScore } from './progress.js';
 
 // Buttons the phone controller may press (anything else on the data channel is ignored)
@@ -62,6 +63,7 @@ class GameApp {
     this.grab.bind(document.getElementById('viewportFrame'));
     this.twin = new TwinControl(this); // still copy of the piece + floor map, to steer a falling piece
     this.twin.bind(document.getElementById('viewportFrame'));
+    this.picker = new OrientationPicker(this); // ROTATE mode, tap the piece: every orientation to choose from
     this.bindDialogPointer();
 
     document.addEventListener('visibilitychange', () => {
@@ -222,7 +224,7 @@ class GameApp {
         // Only the speed changes: the well carries on as it is, with a notification after the clear's own
         setTimeout(() => { if (this.state === 'PLAYING') this.hud.showBanner(`⚡ LEVEL ${d.level}`, 'Pieces fall faster', '#ffc93c', 1.6); }, 1100);
         break;
-      case 'spawn': this.dirty.grid = this.dirty.piece = true; this.saveGame(); break;
+      case 'spawn': this.dirty.grid = this.dirty.piece = true; this.grab.onSpawn(); this.saveGame(); break;
       case 'gameover': this.dirty.grid = this.dirty.piece = true; this.pendingOver = true; break;
     }
   }
@@ -317,7 +319,7 @@ class GameApp {
     };
     this.controls.blockDrag = e => {
       // Twin column first, then the piece / cutter in the scene; elsewhere a drag orbits
-      if (!this.hud.dialogVisible) return this.twin.onPointerDown(e) || this.grab.onPointerDown(e);
+      if (!this.hud.dialogVisible) return this.picker.onPointerDown(e) || this.twin.onPointerDown(e) || this.grab.onPointerDown(e);
       const i = this.hud.hitIndex(...toNdc(e));
       if (i >= 0) { this.hud.setFocus(i); this.dialogAction(this.hud.focusedAction()); }
       return true;
@@ -556,6 +558,7 @@ class GameApp {
     this.updateCamera(dt);
     this.grab.update(dt);
     this.twin.update(dt, this.grab.offHandController());
+    this.picker.update(dt);
     this.renderer.render(this.scene);
   }
 

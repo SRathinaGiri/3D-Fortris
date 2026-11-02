@@ -23,6 +23,30 @@ export const rotateCell = ([x, y, z], axis) => {
   }
 };
 
+/** A cell set as a translation-free key (two orientations are the same when their keys match). */
+export const orientationKey = cells => {
+  const m = [0, 1, 2].map(i => Math.min(...cells.map(c => c[i])));
+  return cells.map(c => `${c[0] - m[0]},${c[1] - m[1]},${c[2] - m[2]}`).sort().join(' ');
+};
+
+/**
+ * Every distinct orientation of a piece (at most 24), as cell lists about the same pivot as the game's
+ * rotations, the given one first. Breadth-first over quarter turns about x / y / z.
+ */
+export function orientations(cells) {
+  const start = cells.map(c => c.slice(0, 3));
+  const seen = new Map([[orientationKey(start), start]]), queue = [start];
+  while (queue.length) {
+    const cur = queue.shift();
+    for (const axis of ['x', 'y', 'z']) {
+      const next = cur.map(c => rotateCell(c, axis));
+      const k = orientationKey(next);
+      if (!seen.has(k)) { seen.set(k, next); queue.push(next); }
+    }
+  }
+  return [...seen.values()];
+}
+
 /** dir -1 = the other way round (three quarter turns). */
 const rotatePiece = (piece, axis, dir = 1) => {
   let cells = piece.cells;
@@ -185,6 +209,22 @@ export class FortrisGame {
       }
     }
     this.emit('bump', { axis });
+    return false;
+  }
+
+  /** Turn the active piece straight to an orientation (cells about its pivot, from orientations()), with rotate()'s wall kicks. */
+  orient(cells) {
+    if (!this.active || this.over) return false;
+    const turned = { ...this.active, cells: cells.map(c => c.slice(0, 3)) };
+    for (const offset of ROTATION_OFFSETS) {
+      if (this.canPlace(turned, offset)) {
+        const p = turned.position;
+        this.active = { ...turned, position: { x: p.x + offset.x, y: p.y + offset.y, z: p.z + offset.z } };
+        this.emit('rotate', { axis: 'pick' });
+        return true;
+      }
+    }
+    this.emit('bump', {});
     return false;
   }
 
