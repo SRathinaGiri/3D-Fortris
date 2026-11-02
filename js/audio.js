@@ -65,6 +65,11 @@ class SoundEngine {
 
   playBump() { if (this.ok()) this.tone(140, 0.07, { type: 'square', vol: 0.05 }); }
   playRotate() { if (this.ok()) this.tone(520, 0.07, { type: 'triangle', vol: 0.08, slideTo: 880 }); }
+  /** Pulley brake off: a quick ratchet. */
+  playPulley() {
+    if (!this.ok()) return;
+    for (let i = 0; i < 4; i++) this.tone(1100 - i * 120, 0.025, { type: 'square', vol: 0.035, at: i * 0.045 });
+  }
   /** Rope cut: a short bright snip. */
   playSnip() {
     if (!this.ok()) return;

@@ -26,15 +26,15 @@ Small additions: E / D / S rotate the other way round, Restart mid-game asks fir
 |---|---|---|---|---|---|
 | Move | Arrows | D-pad / left stick | Drag the piece | Thumbstick · trigger-drag the piece · grip + move your hand | MOVE stick |
 | Rotate | Q / A / W (E / D / S reverse) | Y / X / B | Tap the piece → drag along a ring (red X, green Y, blue Z) | Trigger-drag a ring · grip + twist your wrist | SPIN: swipe to roll, two-finger twist · ⟲X ⟲Y ⟲Z |
-| Release | Space | A | Tap the rope or the ✂ post | Trigger on the rope / post · A / X | ✂ Release |
-| Hard drop | Space again | A again | ⤓ on the post | Trigger on the post · A / X | ⤓ Fast drop |
+| Release (lower on the rope) | Space | A | Tap the rope or ⬇ | Trigger on the rope / button · A / X | Release |
+| Hard drop (cut the rope) | Space again | A again | Tap the rope again or ✂ | Trigger again · A / X | Fast drop |
 | Turn camera | V / Shift+V | LB / RB | Drag the empty view | (walk around) | ↶ ↷ ⊡ |
 | Pause | P / Esc | Start | ⏸ | B / Y | ⏸ |
 
 ### In-scene controls (v2.1)
 The flat touch pad sits at screen depth, so it never fuses in Cross-Eye / Parallel view. The controls now live **inside the 3D scene** (`js/grab.js`):
 - **The piece**: drag it to slide it, cell by cell, across the well. Tap it to show the **rotation rings**; drag along a ring and the piece turns 90° every ~57° of drag. You can still drag the piece to slide it while the rings show. To put them away, tap the piece again, tap a ring without dragging, or tap empty space (a drag on empty space still orbits). They stay on for the next pieces until you put them away.
-- **The rope and post**: a waiting piece hangs on a rope from a post at the well corner nearest you. Tap the rope (or the ✂ button) to **cut it**: the rope snaps and the piece falls. While it falls the button shows **⤓**: tap it for a hard drop. DROP / Space still work and snap the rope too.
+- **The pulley and rope**: a gantry runs across the well's ceiling. The waiting piece hangs straight down on a rope from a pulley on its trolley, and the trolley follows the piece as you slide it. **First tap** on the rope (or the ⬇ button beside the pulley): the pulley unwinds and lowers the piece at the level's speed, still on its rope. **Second tap** (rope or ✂): the rope is cut where you touched it and the piece drops (hard drop). If the piece lands on its rope, it is unhooked and the pulley reels the rope back in. DROP / Space do the same two steps. Taps on the piece, or on the rope just above it, never count as the rope.
 - **3D cursor**: a glowing dot at the pointer, drawn for both eyes so it fuses. Over a side-by-side view the OS pointer is hidden (it only exists in one half).
 - **Per-eye picking**: a touch in either half of a side-by-side view is cast from *that* eye's camera (left / right, cross and swap respected), so a piece in front of or behind the screen plane is hit where you see it.
 - Touch pad **Auto** now hides the flat pad in side-by-side modes (On still forces it). Drag on empty space still orbits.
@@ -42,7 +42,7 @@ The flat touch pad sits at screen depth, so it never fuses in Cross-Eye / Parall
 The on-screen pad shows automatically on touch screens in 2D / anaglyph (menu: Controls → Touch pad: Auto / On / Off).
 
 ## VR (Meta Quest)
-Tap **🥽 VR** in the Quest browser. Each controller has a pointer ray: pull the **trigger** on the piece to slide it, on a ring to turn it, on the rope or post to release / hard drop (trigger at nothing keeps the old rotations: right = Y, left = X). **Squeeze the grip** to hold the piece like a real block: twist your wrist ~50° for a quarter turn about the nearest axis, move your hand one cell to slide it; controllers pulse on each step. Height isn't a problem in VR: the tower's size is set in metres whatever the row count, and its top sits just below eye level, so you look down into it. The well is placed relative to your head: **🪑 Table** (a 70 cm tower in front of you) or **🏙 Giant** (2.6 m, standing on the floor). Moves follow where you stand around the well. The pause panel has Recenter, Table/Giant and Exit VR.
+Tap **🥽 VR** in the Quest browser. Each controller has a pointer ray: pull the **trigger** on the piece to slide it, on a ring to turn it, on the rope or its ceiling button to lower the piece, again to cut the rope (hard drop) (trigger at nothing keeps the old rotations: right = Y, left = X). **Squeeze the grip** to hold the piece like a real block: twist your wrist ~50° for a quarter turn about the nearest axis, move your hand one cell to slide it; controllers pulse on each step. Height isn't a problem in VR: the tower's size is set in metres whatever the row count, and its top sits just below eye level, so you look down into it. The well is placed relative to your head: **🪑 Table** (a 70 cm tower in front of you) or **🏙 Giant** (2.6 m, standing on the floor). Moves follow where you stand around the well. The pause panel has Recenter, Table/Giant and Exit VR.
 
 ## 📲 Phone as controller
 Menu → Controls → **📲 Phone controller** shows a 6-digit code and the address of `controller.html`. Open it on a phone on the **same Wi-Fi**, enter the code, and use it as a **joypad**: MOVE stick (hold to repeat), SPIN pad (swipe to roll the piece the way you swipe, relative to the camera; twist two fingers to turn it clockwise / anticlockwise as you see it), a big ✂ Release / ⤓ Fast drop button that follows the game, plus ⟲X ⟲Y ⟲Z, OK, view and pause. In landscape the stick and spin pad sit either side of the drop button.
@@ -73,7 +73,7 @@ js/well.js      three.js scene: well, blocks, ghost, effects
 js/renderer.js  stereo engine (from 3D Labyrinth)
 js/hud3d.js     in-scene HUD, NEXT / LAYERS panels, 3D dialogs
 js/controls.js  keyboard / gamepad / Quest / orbit input
-js/grab.js      in-scene controls: piece drag, rotation rings, rope + post, 3D cursor, Quest grab
+js/grab.js      in-scene controls: piece drag, rotation rings, ceiling pulley + rope, 3D cursor, Quest grab
 js/audio.js     Web Audio synth
 js/ui.js        menu, settings, touch pad
 js/link.js      phone pairing (PeerJS)

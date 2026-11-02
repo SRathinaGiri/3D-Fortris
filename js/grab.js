@@ -6,9 +6,11 @@
      - the piece itself: drag it to move it across the well, tap it for the
        rotation rings (red X, green Y, blue Z), drag along a ring to turn it 90°;
        tap the piece, a ring or empty space to put the rings away again
-     - a rope ties the waiting piece to a post at the near corner of the well:
-       tap the rope or the post's ✂ button to cut it and release the piece;
-       while it falls the post shows ⤓, tap it for a hard drop
+     - a gantry runs across the well's ceiling; the waiting piece hangs straight
+       down on a rope from a pulley on its trolley, which follows the piece.
+       First tap on the rope (or the ⬇ button): the pulley unwinds and lowers
+       the piece at the level's speed. Second tap (rope or ✂): the rope is cut
+       and the piece drops (hard drop). On landing the pulley reels the rope in.
      - a 3D cursor at the pointer, drawn for both eyes so it fuses too
      - Meta Quest: point and pull the trigger (same as a tap / drag), squeeze
        the grip to hold the piece and twist your wrist to turn it, move your
@@ -26,7 +28,9 @@ const TAP_PX = 10, TAP_MS = 350;      // a press that moves less than this is a 
 const RING_STEP = 1.0;                // radians of drag along a ring for one quarter turn (~57°)
 const TWIST_STEP = 0.85;              // radians of wrist twist (Quest grip) for one quarter turn
 const PICK = { rope: 0.42, ring: 0.42, post: 0.75, pad: 0.35 }; // pick tolerances in cells
-const ROPE_FROM = 0.22;               // the rope near the piece doesn't count as rope (that's the piece)
+const ROPE_GAP = 0.6;                 // the rope's last cells above the piece count as the piece, not the rope
+export const CEILING = 1.5;           // gantry height above the well's rim (cells)
+export const CEILING_FIT = CEILING + 0.9; // what the camera must frame above the rim (gantry + its button)
 const CUT_TIME = 0.45;
 
 function glowTexture() {
@@ -90,7 +94,7 @@ export class GrabControls {
     this.cut = null;           // rope-cut animation
     this.xr = [];              // per Quest controller state
     this.ropeKey = '';
-    this.post = { corner: null, pos: new THREE.Vector3(), ready: false };
+    this.post = { ready: false, side: 1, sizeKey: '' };
 
     this.buildCursor();
     this.buildPost();
@@ -113,21 +117,58 @@ export class GrabControls {
     return s;
   }
 
+  /** Ceiling gantry: a frame over the rim, a bridge across it and a trolley that carries the rope and the ✂ / ⤓ button. */
   buildPost() {
-    const g = this.postGroup = new THREE.Group();
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 1.3, 10),
-      new THREE.MeshStandardMaterial({ color: 0x9aa4b8, metalness: 0.7, roughness: 0.3, envMap: this.app.well.env }));
-    pole.position.y = -0.65;
+    const metal = new THREE.MeshStandardMaterial({ color: 0x9aa4b8, metalness: 0.7, roughness: 0.3, envMap: this.app.well.env });
+    this.gantry = new THREE.Group();
+    this.frameMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.35 });
+    this.frame = new THREE.LineSegments(new THREE.BufferGeometry(), this.frameMat);
+    this.bridge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 1), metal);
+    this.gantry.add(this.frame, this.bridge);
+    this.gantry.visible = false;
+    this.root.add(this.gantry);
+
+    const g = this.postGroup = new THREE.Group(); // the trolley
+    const carriage = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.2, 0.46), metal);
+    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), metal);
+    hook.position.y = -0.2;
+    // Pulley: a grooved wheel under the carriage that turns as the rope pays out / reels in
+    this.wheel = new THREE.Group();
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.045, 8, 24), new THREE.MeshStandardMaterial({ color: 0xffc93c, metalness: 0.6, roughness: 0.35, envMap: this.app.well.env }));
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.035, 0.035), metal);
+    const spoke2 = spoke.clone(); spoke2.rotation.z = Math.PI / 2;
+    this.wheel.add(rim, spoke, spoke2);
+    this.wheel.position.set(0, -0.12, 0);
+    this.wheel.rotation.y = Math.PI / 2; // rope runs down the wheel's side, in the bridge's plane
+    this.ropeLen = null;
+    this.buttonArm = new THREE.Group();          // the button sits beside the rope, along the bridge, on your side
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 1), metal);
+    arm.position.z = 0.5;
     this.buttonMat = new THREE.MeshStandardMaterial({ color: 0xffb340, emissive: 0xff7a1a, emissiveIntensity: 0.6, roughness: 0.35, metalness: 0.2 });
-    const button = this.button = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.4, 0.2, 28), this.buttonMat);
-    this.icons = { cut: iconTexture('✂', '#ffb340'), fast: iconTexture('⤓', '#ff3b5c') };
-    this.icon = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.icons.cut, depthWrite: false, transparent: true }));
-    this.icon.scale.setScalar(0.85);
-    this.icon.position.y = 0.62;
+    const button = this.button = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.38, 0.18, 28), this.buttonMat);
+    button.position.z = 1.05;
+    this.icons = { lower: iconTexture('⬇', '#ffb340'), cut: iconTexture('✂', '#ff3b5c') };
+    this.icon = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.icons.lower, depthWrite: false, transparent: true }));
+    this.icon.scale.setScalar(0.8);
+    this.icon.position.set(0, 0.5, 1.05);
     this.icon.renderOrder = 980;
-    g.add(pole, button, this.icon);
+    this.buttonArm.add(arm, button, this.icon);
+    hook.visible = false; // the rope leaves the pulley directly
+    g.add(carriage, hook, this.wheel, this.buttonArm);
     g.visible = false;
     this.root.add(g);
+  }
+
+  /** Frame over the rim at the gantry's height (rebuilt when the well size changes). */
+  buildFrame() {
+    const { W, H, D } = this.app.well.extent, key = `${W}x${H}x${D}`;
+    if (this.post.sizeKey === key) return;
+    this.post.sizeKey = key;
+    this.frame.geometry.dispose();
+    this.frame.geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(W, 0.001, D));
+    this.frame.position.y = H + CEILING;
+    this.bridge.scale.z = D;
+    this.bridge.position.y = H + CEILING;
   }
 
   buildRope() {
@@ -240,9 +281,12 @@ export class GrabControls {
     }
     if (this.rope.visible && this.ropePts.length > 1) {
       let best = null;
-      const from = Math.floor(this.ropePts.length * ROPE_FROM);
-      for (let i = from; i < this.ropePts.length - 1; i++) {
+      const bottom = this.ropePts[this.ropePts.length - 1].y + ROPE_GAP;
+      for (let i = 0; i < this.ropePts.length - 1; i++) {
+        if (this.ropePts[i + 1].y < bottom) break; // the stretch just above the piece belongs to the piece
         const d = Math.sqrt(ray.distanceSqToSegment(this.ropePts[i], this.ropePts[i + 1], onRay, onSeg));
+        // Where the pointer passes the rope must itself be clear of the piece (the tolerance alone would reach down to it)
+        if (onRay.y < bottom - 0.15) continue;
         if (d < PICK.rope && (!best || d < best.d)) best = { d, t: ray.origin.distanceTo(onRay), point: onSeg.clone() };
       }
       if (best) hits.push({ kind: 'rope', t: best.t, point: best.point });
@@ -267,11 +311,16 @@ export class GrabControls {
       if (ray.intersectBox(box, tmp)) hits.push({ kind: 'piece', t: ray.origin.distanceTo(tmp), point: tmp.clone(), centre: info.centre.clone() });
     }
     if (!hits.length) return null;
-    // The thin targets win when they are under the pointer at all: post, then rope, then a ring
-    // (a ring sits around the piece, the rope can run right past it when the piece is near the post)
+    // The thin targets win when they are under the pointer at all: button, then rope, then a ring
+    // (a ring sits around the piece). The rope only wins if the piece itself isn't in front of it:
+    // a tap on the piece must never cut the rope.
+    let solid = null;
+    if (info && ray.intersectBox(info.box.clone().expandByScalar(PICK.pad), tmp)) solid = ray.origin.distanceTo(tmp);
     for (const kind of ['post', 'rope', 'ring']) {
       const h = hits.filter(x => x.kind === kind).sort((p, q) => p.t - q.t)[0];
-      if (h) return h;
+      if (!h) continue;
+      if (kind === 'rope' && solid !== null && solid < h.t) continue;
+      return h;
     }
     return hits[0];
   }
@@ -302,7 +351,7 @@ export class GrabControls {
     this.app.audio.ensureContext();
     try { e.currentTarget && e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { /* gone */ }
     if (hit.kind === 'post') { this.pressPost(); this.drag = { id: e.pointerId, kind: 'done' }; return true; }
-    if (hit.kind === 'rope') { this.cutRope(hit.point); this.drag = { id: e.pointerId, kind: 'done' }; return true; }
+    if (hit.kind === 'rope') { this.tapRope(hit.point); this.drag = { id: e.pointerId, kind: 'done' }; return true; }
     const start = new THREE.Vector2(e.clientX, e.clientY);
     if (hit.kind === 'ring') {
       const v = hit.point.clone().sub(hit.centre);
@@ -429,39 +478,44 @@ export class GrabControls {
     this.app.audio.playTick();
   }
 
-  /** The post's button: ✂ releases the waiting piece, ⤓ slams a falling one down. */
+  /** The trolley's button: ⬇ lets the pulley lower the waiting piece, ✂ cuts the rope (hard drop). */
   pressPost() {
     if (!this.active) return;
-    this.button.position.y = -0.08; // pressed in; springs back in update()
-    if (!this.app.game.gravity) this.cutRope(this.ropeCut());
-    else { this.app.game.hardDrop(); this.app.vibrate(25); }
+    this.button.position.y = -0.08; // pressed in; springs back in placePost()
+    this.tapRope(null);
   }
 
   ropeCut() { return this.ropePts.length ? this.ropePts[Math.floor(this.ropePts.length * 0.55)].clone() : null; }
 
-  /** Cut the rope where it was touched (or in the middle) and release the piece. */
-  cutRope(at) {
-    if (!this.active || this.app.game.gravity) return;
-    this.cutAt = at;
-    this.app.game.release(); // emits 'release' -> onRelease() animates the cut
+  /** First tap: the pulley unwinds and lowers the piece. Second tap: the rope is cut where touched and the piece drops. */
+  tapRope(at) {
+    if (!this.active) return;
+    const g = this.app.game;
+    if (!g.gravity) { g.release(); return; } // emits 'release' -> onRelease()
+    this.cutAt = at || this.ropeCut();
+    g.hardDrop();                            // emits 'harddrop' -> onHardDrop(), then 'lock'
+    this.app.vibrate(25);
   }
 
-  /** The piece was released (by any input): the rope snaps. */
+  /** Released (any input): the pulley's brake comes off; the rope now pays out as the piece falls. */
   onRelease() {
+    this.app.audio.playPulley();
+    this.app.vibrate(10);
+  }
+
+  /** Hard drop (any input): the rope snaps where it was touched (or in the middle); the lower end falls with the piece. */
+  onHardDrop(distance = 0) {
     if (!this.ropePts.length || !this.rope.visible) return;
     const pts = this.ropePts.map(p => p.clone());
     let k = Math.floor(pts.length * 0.55);
     if (this.cutAt) {
       let best = Infinity;
       pts.forEach((p, i) => { const d = p.distanceTo(this.cutAt); if (d < best) { best = d; k = i; } });
-      k = Math.max(2, Math.min(pts.length - 3, k));
     }
+    k = Math.max(2, Math.min(pts.length - 3, k));
     this.cutAt = null;
-    this.disposeCut();
-    const mk = () => { const m = new THREE.Mesh(new THREE.BufferGeometry(), this.ropeMat.clone()); m.frustumCulled = false; this.root.add(m); return m; };
-    this.cut = { t: 0, anchorSide: pts.slice(0, k + 1), pieceSide: pts.slice(k), a: mk(), b: mk() };
-    this.rope.visible = this.knot.visible = false;
-    this.ropeKey = '';
+    this.startCut(pts.slice(0, k + 1), pts.slice(k), distance);
+    this.snapped = true;
     const p = pts[k], c = new THREE.Color(0xffd34d), q = [];
     for (let i = 0; i < 26; i++) q.push({ x: p.x, y: p.y, z: p.z, vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3, vz: (Math.random() - 0.5) * 4, c });
     this.app.well.burst(q, { size: 0.16, life: 0.6, gravity: 8 });
@@ -469,9 +523,27 @@ export class GrabControls {
     this.app.vibrate([15, 20, 10]);
   }
 
+  /** The piece landed on its rope: unhook it and let the pulley reel the rope back up. */
+  onLock() {
+    if (this.snapped) { this.snapped = false; return; }
+    if (!this.ropePts.length || !this.rope.visible) return;
+    this.startCut(this.ropePts.map(p => p.clone()), [], 0);
+  }
+
+  startCut(anchorSide, pieceSide, drop) {
+    this.disposeCut();
+    const mk = () => { const m = new THREE.Mesh(new THREE.BufferGeometry(), this.ropeMat.clone()); m.frustumCulled = false; this.root.add(m); return m; };
+    this.cut = { t: 0, anchorSide, pieceSide, drop, a: mk(), b: pieceSide.length > 1 ? mk() : null };
+    this.rope.visible = this.knot.visible = false;
+    this.ropePts = [];
+    this.ropeKey = '';
+    this.ropeLen = null;
+    this.skipRope = true; // the next piece hooks on from the next frame
+  }
+
   disposeCut() {
     if (!this.cut) return;
-    for (const m of [this.cut.a, this.cut.b]) { this.root.remove(m); m.geometry.dispose(); m.material.dispose(); }
+    for (const m of [this.cut.a, this.cut.b]) if (m) { this.root.remove(m); m.geometry.dispose(); m.material.dispose(); }
     this.cut = null;
   }
 
@@ -533,7 +605,7 @@ export class GrabControls {
         if (play && !hit && this.ringsOn) this.toggleRings();                           // pointing at nothing with the rings up: put them away
         else if (!play || !hit) this.app.controls.fire(hand === 'R' ? 'rotY' : 'rotX', 'vr'); // pointing at nothing: the old trigger rotations
         else if (hit.kind === 'post') { this.pressPost(); pulse(0.6, 30); }
-        else if (hit.kind === 'rope') { this.cutRope(hit.point); pulse(0.8, 40); }
+        else if (hit.kind === 'rope') { this.tapRope(hit.point); pulse(0.8, 40); }
         else if (hit.kind === 'ring') {
           s.drag = { kind: 'ring', axis: hit.axis, centre: hit.centre, last: this.ringAngle(hit.axis, hit.point.clone().sub(hit.centre)), acc: 0, turned: false, t0: performance.now() };
           this.ringMeshes[hit.axis].material.opacity = 1;
@@ -623,11 +695,11 @@ export class GrabControls {
     const hideOs = app.renderer.isDualView && app.state === 'PLAYING';
     if (this.osHidden !== hideOs) { canvas.style.cursor = hideOs ? 'none' : ''; this.osHidden = hideOs; }
 
-    // Post at the well's corner nearest the viewer, just outside the rim
-    this.postGroup.visible = !!(live && info);
+    // Gantry on the ceiling; its trolley rides above the piece
+    this.postGroup.visible = this.gantry.visible = !!(live && info);
     if (this.postGroup.visible) {
-      this.placePost(dt);
-      const mode = holding ? 'cut' : 'fast';
+      this.placePost(dt, info);
+      const mode = holding ? 'lower' : 'cut';
       if (this.iconMode !== mode) {
         this.iconMode = mode;
         this.icon.material.map = this.icons[mode];
@@ -635,16 +707,25 @@ export class GrabControls {
         this.buttonMat.color.set(holding ? 0xffb340 : 0xff3b5c);
         this.buttonMat.emissive.set(holding ? 0xff7a1a : 0xc0122f);
       }
-      const hot = (this.hover && this.hover.kind === 'post') || this.xr.some(s => s.cursor.visible && s.cursor.position.distanceTo(this.postGroup.position) < 1);
+      const bp = this.app.well.well.worldToLocal(this.button.getWorldPosition(new THREE.Vector3()));
+      const hot = (this.hover && this.hover.kind === 'post') || this.xr.some(s => s.cursor.visible && s.cursor.position.distanceTo(bp) < 0.8);
       this.buttonMat.emissiveIntensity = (hot ? 1.1 : 0.5) + 0.25 * Math.sin(this.elapsed * (holding ? 5 : 8));
-      this.button.position.y += (0 - this.button.position.y) * Math.min(1, 12 * dt);
-      this.icon.scale.setScalar(0.85 * (hot ? 1.15 : 1));
+      this.icon.scale.setScalar(0.8 * (hot ? 1.15 : 1));
     }
 
-    // Rope from the post to the waiting piece
-    this.rope.visible = this.knot.visible = holding;
-    if (holding) this.updateRope(info);
+    // Rope straight down from the pulley to the piece, while it waits and while it is lowered
+    const roped = !!(live && info) && !this.skipRope;
+    this.skipRope = false;
+    this.rope.visible = this.knot.visible = roped;
+    if (roped) this.updateRope(info);
     else this.ropePts = [];
+    // The pulley turns with the rope: paying out as the piece is lowered, reeling in for the next one
+    if (this.ropePts.length) {
+      const len = this.ropePts[0].distanceTo(this.ropePts[this.ropePts.length - 1]);
+      this.wheelTarget = (this.wheelTarget || 0) + (this.ropeLen === null ? 0 : (len - this.ropeLen) / 0.17);
+      this.ropeLen = len;
+    }
+    if (this.wheelTarget !== undefined) this.wheel.rotation.x += (this.wheelTarget - this.wheel.rotation.x) * Math.min(1, 10 * dt);
 
     // Rotation rings around the piece
     this.rings.visible = !!(info && this.ringsOn);
@@ -656,12 +737,16 @@ export class GrabControls {
       c.t += dt;
       const k = Math.min(1, c.t / CUT_TIME);
       const keepA = Math.max(2, Math.round(c.anchorSide.length * (1 - k)));
-      const keepB = Math.max(2, Math.round(c.pieceSide.length * (1 - k)));
+      // Upper end: reeled back up into the pulley
       this.setTube(c.a, c.anchorSide.slice(0, keepA));
-      // The piece keeps its end of the rope for a moment as it starts to fall
-      const shift = info ? info.attach.clone().sub(c.pieceSide[c.pieceSide.length - 1]) : new THREE.Vector3();
-      this.setTube(c.b, c.pieceSide.slice(c.pieceSide.length - keepB).map(p => p.clone().add(shift)));
-      c.a.material.opacity = c.b.material.opacity = 1 - k;
+      c.a.material.opacity = 1 - k * k;
+      // Lower end (a cut): falls with the slammed piece and fades
+      if (c.b) {
+        const shift = new THREE.Vector3(0, -c.drop * Math.min(1, k * 3), 0);
+        this.setTube(c.b, c.pieceSide.map(p => p.clone().add(shift)));
+        c.b.material.opacity = 1 - k;
+      }
+      this.wheelTarget = (this.wheelTarget || 0) - dt * 14 * (1 - k); // spins back as it reels in
       if (k >= 1) this.disposeCut();
     }
 
@@ -687,32 +772,33 @@ export class GrabControls {
     this.ropeMat.emissive.set(ropeHot ? 0xffb340 : 0x6b5a3a);
   }
 
-  placePost(dt) {
+  /** Trolley above the piece on the ceiling gantry; the button arm points to the viewer's side. */
+  placePost(dt, info) {
+    this.buildFrame();
     const w = this.app.well, { W, H, D } = w.extent;
-    const cam = this.app.renderer.mainCamera.getWorldPosition(new THREE.Vector3());
-    w.well.worldToLocal(cam);
-    const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
-    const score = ([sx, sz]) => sx * W / 2 * cam.x + sz * D / 2 * cam.z;
-    let best = corners.reduce((b, c) => (score(c) > score(b) ? c : b));
-    // Hysteresis: don't flick between two corners while the camera orbits past a diagonal
-    if (this.post.corner && score(best) - score(this.post.corner) < 0.15 * Math.hypot(cam.x, cam.z)) best = this.post.corner;
-    this.post.corner = best;
-    const target = new THREE.Vector3(best[0] * (W / 2 + 0.55), H - 0.25, best[1] * (D / 2 + 0.55));
+    const x = Math.max(-W / 2 + 0.3, Math.min(W / 2 - 0.3, info.attach.x));
+    const z = Math.max(-D / 2 + 0.3, Math.min(D / 2 - 0.3, info.attach.z));
+    const target = new THREE.Vector3(x, H + CEILING, z);
     if (!this.post.ready) { this.postGroup.position.copy(target); this.post.ready = true; }
-    else this.postGroup.position.lerp(target, Math.min(1, 6 * dt));
+    else this.postGroup.position.lerp(target, Math.min(1, 14 * dt));
+    this.bridge.position.x = this.postGroup.position.x;
+    // Button towards the camera along the bridge (z), kept inside the frame; flips with a little hysteresis
+    const cam = w.well.worldToLocal(this.app.renderer.mainCamera.getWorldPosition(new THREE.Vector3()));
+    if (Math.abs(cam.z) > 0.5) this.post.side = cam.z > 0 ? 1 : -1;
+    let side = this.post.side;
+    if (z + side * 1.05 > D / 2 || z + side * 1.05 < -D / 2) side = -side; // no room on that side: the other one
+    this.buttonArm.rotation.y = side > 0 ? 0 : Math.PI;
+    this.button.position.y += (0 - this.button.position.y) * Math.min(1, 12 * dt);
   }
 
   updateRope(info) {
-    const anchor = this.postGroup.position.clone().add(new THREE.Vector3(0, 0.12, 0));
+    const anchor = this.postGroup.position.clone().add(new THREE.Vector3(0, -0.28, 0));
     const end = info.attach.clone().add(new THREE.Vector3(0, 0.02, 0));
-    const key = `${anchor.x.toFixed(2)},${anchor.y.toFixed(2)},${anchor.z.toFixed(2)}|${end.x},${end.y},${end.z}`;
+    const key = `${anchor.x.toFixed(3)},${anchor.z.toFixed(3)}|${end.x},${end.y},${end.z}`;
     if (key === this.ropeKey) return;
     this.ropeKey = key;
-    const len = anchor.distanceTo(end);
-    const mid = anchor.clone().lerp(end, 0.5);
-    mid.y = Math.max(end.y, anchor.y) + 0.25 + 0.12 * len; // a short rope arcs up from the post and over to the piece
-    const curve = new THREE.QuadraticBezierCurve3(anchor, mid, end);
-    this.ropePts = curve.getPoints(24);
+    // Hangs straight: the trolley is right above the piece (it eases in when the piece slides)
+    this.ropePts = Array.from({ length: 17 }, (_, i) => anchor.clone().lerp(end, i / 16));
     this.setTube(this.rope, this.ropePts);
     this.knot.position.copy(end);
   }
@@ -740,11 +826,12 @@ export class GrabControls {
     }
   }
 
-  /** A new game: forget drags, cut animations and the post's corner. */
+  /** A new game: forget drags, cut animations and the trolley's position. */
   reset() {
-    this.drag = null; this.hover = null; this.cursorAt = null; this.cutAt = null; this.emptyTap = null;
+    this.drag = null; this.hover = null; this.cursorAt = null; this.cutAt = null; this.emptyTap = null; this.snapped = false;
+    this.ropeLen = null;
     this.disposeCut();
-    this.post.ready = false; this.post.corner = null;
+    this.post.ready = false;
     this.ropeKey = ''; this.ropePts = [];
     for (const s of this.xr) { s.drag = null; s.twist = null; }
   }

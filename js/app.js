@@ -12,7 +12,7 @@ import { HUD3D } from './hud3d.js';
 import { soundEngine } from './audio.js';
 import { UIManager } from './ui.js';
 import { TVLink } from './link.js';
-import { GrabControls, snapAxis } from './grab.js';
+import { GrabControls, snapAxis, CEILING_FIT } from './grab.js';
 import { PROGRESS_KEY, loadProgress, saveProgress, parseProgress, mergeProgress, addScore } from './progress.js';
 
 // Buttons the phone controller may press (anything else on the data channel is ignored)
@@ -113,7 +113,7 @@ class GameApp {
     this.cam = null; // re-fit the camera to this well at once
     if (this.inVR) this.applyVR();
     this.state = 'PLAYING';
-    this.hud.showBanner(`LEVEL ${this.game.level}`, resume && saved ? 'Welcome back · cut the rope ✂ or DROP' : 'Cut the rope ✂ (or DROP) to release', '#00f0ff', 2.2);
+    this.hud.showBanner(`LEVEL ${this.game.level}`, resume && saved ? 'Welcome back · tap the rope ⬇ to lower it' : 'Tap the rope ⬇ to lower it · tap again ✂ to cut', '#00f0ff', 2.2);
   }
 
   togglePause() {
@@ -194,8 +194,8 @@ class GameApp {
       case 'bump': this.audio.playBump(); break;
       case 'rotate': this.audio.playRotate(); this.dirty.piece = true; break;
       case 'release': this.audio.playRelease(); this.grab.onRelease(); break;
-      case 'harddrop': this.audio.playHardDrop(d.distance); break;
-      case 'lock': this.audio.playLock(); this.vibrate(12); break;
+      case 'harddrop': this.audio.playHardDrop(d.distance); this.grab.onHardDrop(d.distance); break;
+      case 'lock': this.audio.playLock(); this.vibrate(12); this.grab.onLock(); break;
       case 'bomb':
         this.audio.playBomb(); this.vibrate([30, 30, 90]);
         this.well.bombBurst(d.at, d.removed);
@@ -440,7 +440,8 @@ class GameApp {
     const tv = Math.tan(fovDeg * Math.PI / 360), th = tv * aspect;
     const top = Math.min(0.94, this.hud.topNdc - 0.04), bottom = -0.94, side = 0.94;
     const pts = [];
-    for (const x of [-W / 2, W / 2]) for (const y of [-H / 2, H / 2]) for (const z of [-D / 2, D / 2]) {
+    // The ceiling gantry (rope, trolley, ✂ button) sits above the rim: frame it too
+    for (const x of [-W / 2, W / 2]) for (const y of [-H / 2, H / 2 + CEILING_FIT]) for (const z of [-D / 2, D / 2]) {
       const v = new THREE.Vector3(x, y, z);
       pts.push({ x: v.dot(right), y: v.dot(up), z: v.dot(dir) });
     }

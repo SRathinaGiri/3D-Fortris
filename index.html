@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Fortris3D">
-  <link rel="stylesheet" href="./css/styles.css?v=2.1.1">
+  <link rel="stylesheet" href="./css/styles.css?v=2.1.2">
   <!-- Three.js r128, bundled locally so the PWA works fully offline -->
   <script src="./js/lib/three.min.js"></script>
   <!-- PeerJS 1.5.5 (MIT, bundled locally): phone-controller pairing only. See js/lib/peerjs.LICENSE.txt -->
@@ -33,7 +33,7 @@
           </g>
         </svg>
         <span>3D Fortris</span>
-        <span class="version-badge">v2.1.1</span>
+        <span class="version-badge">v2.1.2</span>
       </div>
       <div class="header-controls">
         <button class="icon-btn install-btn" id="installBtn" style="display:none" title="Install as an app on this device">📲 Install app</button>
@@ -83,7 +83,7 @@
           <tr><td><kbd>T</kbd> · <kbd>H</kbd></td><td>Top view · show/hide the Next &amp; Layers panels</td></tr>
           <tr><td><kbd>P</kbd> · <kbd>R</kbd> · <kbd>M</kbd></td><td>Pause · restart · sound</td></tr>
         </table>
-        <p class="hint"><strong>In the 3D view</strong> (works in side-by-side 3D too): drag the piece to slide it, tap it for the rotation rings and drag along a ring to turn it 90°. Tap the rope or the ✂ post to release, ⤓ on the post for a hard drop.</p>
+        <p class="hint"><strong>In the 3D view</strong> (works in side-by-side 3D too): drag the piece to slide it, tap it for the rotation rings and drag along a ring to turn it 90°. The piece hangs on a rope from a pulley on the ceiling: tap the rope (or ⬇) to lower it, tap again (or ✂) to cut the rope and drop it.</p>
         <p class="hint">Drag the empty view to orbit, pinch or scroll to zoom. Gamepad: D-pad / stick move, A drop, X / Y / B rotate Y / X / Z, LB / RB turn the camera, Start pause.</p>
         </div>
       </details>
@@ -208,7 +208,7 @@
       <h3>How to play</h3>
       <ul>
         <li>Pieces fall inside a <strong>3D well</strong>. Fill every cell of a horizontal layer to clear it: 100 points × your level per layer.</li>
-        <li>A new piece <strong>waits at the top</strong>, tied by a rope to the post at the near corner (⏸ HOLD on the bar), so you can line it up. <strong>Cut the rope</strong> (tap it, or the ✂ post) or press <strong>DROP</strong> (<kbd>Space</kbd>) to release it; the post then shows ⤓: tap it (or DROP again) to slam the piece down.</li>
+        <li>A new piece <strong>hangs at the top</strong> on a rope from a pulley that runs along the ceiling above it (⏸ HOLD on the bar), so you can line it up. <strong>Tap the rope</strong> (or the ⬇ button, or <strong>DROP</strong> / <kbd>Space</kbd>): the pulley unwinds and lowers the piece. <strong>Tap again</strong> (rope, ✂ or DROP): the rope is cut and the piece drops straight down. If it lands on its rope, the pulley reels the rope back in for the next piece.</li>
         <li><strong>Touch the piece</strong>: drag it to slide it across the well, tap it to show the rings (red X, green Y, blue Z) and drag along a ring to turn it. You can still slide it with the rings showing; tap the piece, a ring or empty space to hide them. A glowing cursor shows both eyes where you point, so this works in Cross-Eye and Parallel 3D.</li>
         <li>The <strong>ghost</strong> and the floor markers show where the piece will land; the thin lines drop from each column.</li>
         <li><strong>Arrows follow the camera</strong>: ▲ always moves the piece away from you. Turn the view with ↶ ↷ (<kbd>V</kbd>), look straight down with ⊡ (<kbd>T</kbd>), or drag to orbit.</li>
@@ -223,7 +223,7 @@
         <li><strong>Cross-Eye 3D</strong>: cross your eyes until a third image fuses in the middle.</li>
         <li><strong>Anaglyph</strong>: red/cyan glasses.</li>
         <li><strong>Smart Glasses (HSBS)</strong>: 16:9 half side-by-side for RayNeo Air, XREAL, Rokid, TCL — switch the glasses to 3D SBS mode.</li>
-        <li><strong>🥽 VR</strong>: appears in the Meta Quest browser. The well stands in front of you; thumbstick moves, A drops, B pauses. Point the controller and pull the <strong>trigger</strong> on the piece (slide it), a ring (turn it), the rope or the post. <strong>Squeeze the grip</strong> to hold the piece: twist your wrist to turn it, move your hand to slide it. Trigger at nothing = the old rotations (right Y, left X).</li>
+        <li><strong>🥽 VR</strong>: appears in the Meta Quest browser. The well stands in front of you; thumbstick moves, A drops, B pauses. Point the controller and pull the <strong>trigger</strong> on the piece (slide it), a ring (turn it), or the rope / ceiling button (lower, then cut). <strong>Squeeze the grip</strong> to hold the piece: twist your wrist to turn it, move your hand to slide it. Trigger at nothing = the old rotations (right Y, left X).</li>
         <li><strong>3D Depth</strong> scales with the camera distance; lower it if your eyes strain. <strong>Focus</strong> moves the screen plane.</li>
       </ul>
       <button class="action-btn" id="closeInfoBtn">Got it</button>
@@ -279,20 +279,20 @@
   <script type="importmap">
   {
     "imports": {
-      "./js/config.js": "./js/config.js?v=2.1.1",
-      "./js/game.js": "./js/game.js?v=2.1.1",
-      "./js/renderer.js": "./js/renderer.js?v=2.1.1",
-      "./js/well.js": "./js/well.js?v=2.1.1",
-      "./js/controls.js": "./js/controls.js?v=2.1.1",
-      "./js/hud3d.js": "./js/hud3d.js?v=2.1.1",
-      "./js/audio.js": "./js/audio.js?v=2.1.1",
-      "./js/ui.js": "./js/ui.js?v=2.1.1",
-      "./js/link.js": "./js/link.js?v=2.1.1",
-      "./js/progress.js": "./js/progress.js?v=2.1.1",
-      "./js/grab.js": "./js/grab.js?v=2.1.1"
+      "./js/config.js": "./js/config.js?v=2.1.2",
+      "./js/game.js": "./js/game.js?v=2.1.2",
+      "./js/renderer.js": "./js/renderer.js?v=2.1.2",
+      "./js/well.js": "./js/well.js?v=2.1.2",
+      "./js/controls.js": "./js/controls.js?v=2.1.2",
+      "./js/hud3d.js": "./js/hud3d.js?v=2.1.2",
+      "./js/audio.js": "./js/audio.js?v=2.1.2",
+      "./js/ui.js": "./js/ui.js?v=2.1.2",
+      "./js/link.js": "./js/link.js?v=2.1.2",
+      "./js/progress.js": "./js/progress.js?v=2.1.2",
+      "./js/grab.js": "./js/grab.js?v=2.1.2"
     }
   }
   </script>
-  <script type="module" src="./js/app.js?v=2.1.1"></script>
+  <script type="module" src="./js/app.js?v=2.1.2"></script>
 </body>
 </html>
