@@ -621,18 +621,25 @@ export class GrabControls {
       const dir = new THREE.Vector3(0, 0, -1).transformDirection(ctrl.matrixWorld);
       const ray = this.toLocalRay(new THREE.Ray(origin, dir));
       const play = this.active;
-      const hit = play && !s.twist ? this.pick(ray) : null;
-      s.cursor.visible = !!hit || !!s.drag;
+      s.hand = src.handedness === 'left' ? 'left' : 'right';
+      const offHand = s.hand !== (this.app.settings.hand === 'left' ? 'left' : 'right');
+      // The twin's floor map (carried on the other hand) comes before anything in the well
+      const twinHit = play && !offHand ? this.app.twin.hit(new THREE.Ray(origin, dir)) : null;
+      const hit = play && !s.twist && !twinHit ? this.pick(ray) : null;
+      s.cursor.visible = !!hit || (!!s.drag && s.drag.kind !== 'map');
       if (hit) s.cursor.position.copy(hit.point);
+      s.line.visible = !offHand || !play; // the hand holding the twin doesn't point
       s.line.scale.z = hit ? Math.max(0.05, origin.distanceTo(well.localToWorld(hit.point.clone()))) : 3;
-      s.line.material.color.set(hit ? 0xffd34d : 0x00f0ff);
+      s.line.material.color.set(hit || twinHit ? 0xffd34d : 0x00f0ff);
       const pulse = (v, ms) => { const h = src.gamepad.hapticActuators && src.gamepad.hapticActuators[0]; if (h && h.pulse) h.pulse(v, ms).catch(() => {}); };
       const b = k => !!(src.gamepad.buttons[k] && src.gamepad.buttons[k].pressed);
       const hand = src.handedness === 'left' ? 'L' : 'R';
       const trig = b(0), grip = b(1);
 
       // Trigger: press = tap on what the ray points at; hold on the piece / a ring = drag
-      if (trig && !s.trig && !this.app.controls.menuMode) {
+      if (trig && !s.trig && !this.app.controls.menuMode && twinHit) {
+        if (twinHit.kind === 'map') { s.drag = { kind: 'map' }; this.app.twin.moveToCell(twinHit.x, twinHit.z); pulse(0.3, 15); }
+      } else if (trig && !s.trig && !this.app.controls.menuMode) {
         if (play && !hit && this.ringsOn) this.toggleRings();                           // pointing at nothing with the rings up: put them away
         else if (!play || !hit) this.app.controls.fire(hand === 'R' ? 'rotY' : 'rotX', 'vr'); // pointing at nothing: the old trigger rotations
         else if (hit.kind === 'post') { this.pressPost(); pulse(0.6, 30); }
@@ -646,7 +653,8 @@ export class GrabControls {
       }
       if (trig && s.drag) {
         const d = s.drag;
-        if (d.kind === 'ring') {
+        if (d.kind === 'map') { if (twinHit && twinHit.kind === 'map') this.app.twin.moveToCell(twinHit.x, twinHit.z); }
+        else if (d.kind === 'ring') {
           const n = AXES[d.axis], p = new THREE.Vector3();
           if (ray.intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(n, d.centre), p)) {
             const ang = this.ringAngle(d.axis, p.sub(d.centre));
@@ -674,7 +682,8 @@ export class GrabControls {
       }
       s.trig = trig;
 
-      // Grip: hold the piece like a real block. Twist the wrist 90° to turn it, move the hand a cell to slide it.
+      // Grip: hold the piece like a real block and twist the wrist 90° to turn it. (Sliding by moving the hand
+      // is gone: the piece falls while you hold it, so the hand chased it and overshot. Move with the twin's map.)
       if (grip && !s.grip && play && !this.app.controls.menuMode) {
         s.twist = { q0: ctrl.getWorldQuaternion(new THREE.Quaternion()), p0: well.worldToLocal(origin.clone()) };
         pulse(0.4, 20);
@@ -693,21 +702,17 @@ export class GrabControls {
           const quarterW = wq.clone().multiply(quarterL).multiply(wqi);
           s.twist.q0.premultiply(quarterW);
         }
-        const p = well.worldToLocal(origin.clone()), g = this.app.game;
-        for (const k of ['x', 'z']) {
-          const dd = p[k] - s.twist.p0[k];
-          if (Math.abs(dd) >= 1) {
-            const sg = Math.sign(dd), offset = { x: k === 'x' ? sg : 0, y: 0, z: k === 'z' ? sg : 0 };
-            const moved = g.shift(offset);
-            g.emit(moved ? 'move' : 'bump', { offset });
-            if (moved) pulse(0.25, 12);
-            s.twist.p0[k] += sg;
-          }
-        }
       }
       if (!grip) s.twist = null;
       s.grip = grip;
     });
+  }
+
+  /** The controller in the hand that carries the twin (the one opposite the "hand" setting). */
+  offHandController() {
+    const main = this.app.settings.hand === 'left' ? 'left' : 'right';
+    const s = this.xr.find(x => x.hand && x.hand !== main);
+    return s ? s.ctrl : null;
   }
 
   setXRVisible(on) { for (const s of this.xr) { s.line.visible = on; if (!on) s.cursor.visible = false; } }

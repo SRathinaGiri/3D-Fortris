@@ -13,6 +13,7 @@ import { soundEngine } from './audio.js';
 import { UIManager } from './ui.js';
 import { TVLink } from './link.js';
 import { GrabControls, snapAxis, CEILING_FIT, CUTTER_OUT } from './grab.js';
+import { TwinControl } from './twin.js';
 import { PROGRESS_KEY, loadProgress, saveProgress, parseProgress, mergeProgress, addScore } from './progress.js';
 
 // Buttons the phone controller may press (anything else on the data channel is ignored)
@@ -36,7 +37,7 @@ class GameApp {
     this.depth = 1.0;
     this.focusOffset = 0;
     this.progress = loadProgress();
-    this.settings = { opacity: 0.85, autoRotate: true, ghost: true, guides: true, panels: true, pad: 'auto' };
+    this.settings = { opacity: 0.85, autoRotate: true, ghost: true, guides: true, panels: true, pad: 'auto', hand: 'right' };
     this.orbit = { theta: CAMERA.THETA, phi: CAMERA.PHI, zoom: 1, target: null, top: false, camPhi: CAMERA.PHI };
     this.vr = { mode: 'table', pending: false, frames: 0, head: null, fwd: null, yaw: 0, turn: 0 };
     this.vrHud = new THREE.Group();
@@ -59,6 +60,8 @@ class GameApp {
     this.controls.onAction = a => this.handleAction(a);
     this.grab = new GrabControls(this);
     this.grab.bind(document.getElementById('viewportFrame'));
+    this.twin = new TwinControl(this); // still copy of the piece + floor map, to steer a falling piece
+    this.twin.bind(document.getElementById('viewportFrame'));
     this.bindDialogPointer();
 
     document.addEventListener('visibilitychange', () => {
@@ -99,6 +102,7 @@ class GameApp {
     }
     this.well.clearEffects();
     this.grab.reset();
+    this.twin.reset();
     this.well.build(this.game.size, this.game.level);
     this.well.setOpacity(this.settings.opacity);
     this.dirty.grid = this.dirty.piece = true;
@@ -312,7 +316,8 @@ class GameApp {
       return [u * 2 - 1, 1 - v * 2];
     };
     this.controls.blockDrag = e => {
-      if (!this.hud.dialogVisible) return this.grab.onPointerDown(e); // on the piece / rope / post: ours; elsewhere a drag orbits
+      // Twin column first, then the piece / cutter in the scene; elsewhere a drag orbits
+      if (!this.hud.dialogVisible) return this.twin.onPointerDown(e) || this.grab.onPointerDown(e);
       const i = this.hud.hitIndex(...toNdc(e));
       if (i >= 0) { this.hud.setFocus(i); this.dialogAction(this.hud.focusedAction()); }
       return true;
@@ -406,7 +411,7 @@ class GameApp {
     if (o.target !== null) {
       o.theta += (o.target - o.theta) * Math.min(1, 7 * dt);
       if (Math.abs(o.target - o.theta) < 0.002) { o.theta = o.target; o.target = null; }
-    } else if (this.settings.autoRotate && !input.dragging && !this.grab.busy && !o.top && this.state === 'PLAYING') {
+    } else if (this.settings.autoRotate && !input.dragging && !this.grab.busy && !this.twin.busy && !o.top && this.state === 'PLAYING') {
       o.theta += CAMERA.AUTO_ROTATE * dt;
     }
     o.camPhi += ((o.top ? CAMERA.TOP_PHI : o.phi) - o.camPhi) * Math.min(1, 6 * dt);
@@ -550,6 +555,7 @@ class GameApp {
     this.hud.update(dt);
     this.updateCamera(dt);
     this.grab.update(dt);
+    this.twin.update(dt, this.grab.offHandController());
     this.renderer.render(this.scene);
   }
 

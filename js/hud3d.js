@@ -110,6 +110,8 @@ export class HUD3D {
     this.next.mesh.scale.set(nW, nH, 1);
     this.next.mesh.position.set(nX, nY, -distance * 0.999);
     const lW = Math.min(viewH * 0.2, viewW * 0.16), lH = lW * LAYERS_H / LAYERS_W;
+    // Where the side panels end: the twin control (twin.js) stacks under them
+    this.layoutInfo = { viewW, viewH, distance, margin, top, nextBottom: top - nH, layersBottom: top - lH };
     this.layers.mesh.scale.set(lW, lH, 1);
     this.layers.mesh.position.set(-viewW / 2 + lW / 2 + margin, top - lH / 2, -distance * 0.999);
 

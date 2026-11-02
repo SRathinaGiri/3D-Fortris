@@ -58,6 +58,7 @@ export class UIManager {
     this.on('helpBtn', () => $('infoDrawer').classList.remove('hidden'));
     this.on('closeInfoBtn', () => $('infoDrawer').classList.add('hidden'));
     this.on('phonePadBtn', () => a.startPhoneLink());
+    this.on('handBtn', () => { a.settings.hand = a.settings.hand === 'left' ? 'right' : 'left'; this.syncHand(); this.saveSettings(); });
     this.on('linkDoneBtn', () => $('linkPanel').classList.add('hidden'));
     this.on('linkStopBtn', () => { a.stopPhoneLink(); $('linkPanel').classList.add('hidden'); });
 
@@ -179,6 +180,12 @@ export class UIManager {
       ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
       btn.addEventListener('contextmenu', e => e.preventDefault());
     });
+  }
+
+  /** Twin column side (and, on Quest, which hand points: the other one carries the twin). */
+  syncHand() {
+    const b = $('handBtn'), left = this.app.settings.hand === 'left';
+    if (b) b.textContent = left ? '✋ Twin: left side (left-handed)' : '✋ Twin: right side';
   }
 
   syncPad() {
@@ -379,6 +386,8 @@ export class UIManager {
     a.renderer.swapEyes = !!s.swapEyes; this.syncSwap();
     for (const k of ['autoRotate', 'ghost', 'guides', 'panels']) if (typeof s[k] === 'boolean') a.settings[k] = s[k];
     if (PAD_LABEL[s.pad]) a.settings.pad = s.pad;
+    if (s.hand === 'left' || s.hand === 'right') a.settings.hand = s.hand;
+    this.syncHand();
     a.well.showGhost = a.settings.ghost; a.well.showGuides = a.settings.guides;
     if (s.muted && !a.audio.muted) a.audio.toggleMute();
     this.syncMute();

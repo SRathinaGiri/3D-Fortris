@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Fortris3D">
-  <link rel="stylesheet" href="./css/styles.css?v=2.2.1">
+  <link rel="stylesheet" href="./css/styles.css?v=2.3.0">
   <!-- Three.js r128, bundled locally so the PWA works fully offline -->
   <script src="./js/lib/three.min.js"></script>
   <!-- PeerJS 1.5.5 (MIT, bundled locally): phone-controller pairing only. See js/lib/peerjs.LICENSE.txt -->
@@ -33,7 +33,7 @@
           </g>
         </svg>
         <span>3D Fortris</span>
-        <span class="version-badge">v2.2.1</span>
+        <span class="version-badge">v2.3.0</span>
       </div>
       <div class="header-controls">
         <button class="icon-btn install-btn" id="installBtn" style="display:none" title="Install as an app on this device">📲 Install app</button>
@@ -71,6 +71,7 @@
         <div class="row-wrap">
           <button class="icon-btn" id="autoRotateBtn" title="Slowly orbit the camera around the well">🔄 Auto-rotate camera: ON</button>
           <button class="icon-btn" id="padModeBtn" title="On-screen arrows, rotations and DROP (Auto = touch screens only)">🕹 Touch pad: Auto</button>
+          <button class="icon-btn" id="handBtn" title="Side for the twin piece and floor map you steer with (Quest: the other hand carries them)">✋ Twin: right side</button>
           <button class="icon-btn" id="phonePadBtn" title="Use a phone on the same Wi-Fi as a controller (e.g. for a TV or smart glasses)">📲 Phone controller</button>
         </div>
         <table class="key-table">
@@ -209,6 +210,7 @@
       <ul>
         <li>Pieces fall inside a <strong>3D well</strong>. Fill every cell of a horizontal layer to clear it: 100 points × your level per layer.</li>
         <li>A new piece <strong>hangs at the top</strong> on a rope from a pulley on the ceiling. You have <strong>10 seconds</strong> to line it up (the countdown shows over the pulley and on the bar); then the pulley unwinds by itself and lowers it at the level's speed. To drop it at once, tap the red <strong>✂ cutter</strong> at the end of the ceiling bar, just outside the wall (or <strong>DROP</strong> / <kbd>Space</kbd>): a blade runs along the bar and cuts the rope. The rope itself doesn't react to taps, so you can't cut it by accident.</li>
+        <li><strong>Twin + map</strong> (bottom corner; menu → Controls → ✋ for left or right): a big copy of the falling piece that stays still, so you never chase the real one. <strong>Swipe the twin</strong> to roll the piece the way you swipe, <strong>twist two fingers</strong> on it to turn it. <strong>Touch or drag on the map</strong> under it (a top view of the well, turned to match your view, numbers = stack height) and the piece slides to that column.</li>
         <li><strong>Touch the piece</strong>: drag it to slide it across the well, tap it to show the rings (red X, green Y, blue Z) and drag along a ring to turn it. You can still slide it with the rings showing; tap the piece, a ring or empty space to hide them. A glowing cursor shows both eyes where you point, so this works in Cross-Eye and Parallel 3D.</li>
         <li>The <strong>ghost</strong> (rainbow-coloured, striped cubes: no real block looks like that) shows where the piece will land, even through blocks in front of it; the bright tiles mark what each column will rest on (the floor or a block), and the thin lines drop from each column.</li>
         <li><strong>Arrows follow the camera</strong>: ▲ always moves the piece away from you. Turn the view with ↶ ↷ (<kbd>V</kbd>), look straight down with ⊡ (<kbd>T</kbd>), or drag to orbit.</li>
@@ -224,7 +226,7 @@
         <li><strong>Cross-Eye 3D</strong>: cross your eyes until a third image fuses in the middle.</li>
         <li><strong>Anaglyph</strong>: red/cyan glasses.</li>
         <li><strong>Smart Glasses (HSBS)</strong>: 16:9 half side-by-side for RayNeo Air, XREAL, Rokid, TCL — switch the glasses to 3D SBS mode.</li>
-        <li><strong>🥽 VR</strong>: appears in the Meta Quest browser. The well stands in front of you; thumbstick moves, A drops, B pauses. Point the controller and pull the <strong>trigger</strong> on the piece (slide it), a ring (turn it), or the ✂ cutter (drop now). <strong>Squeeze the grip</strong> to hold the piece: twist your wrist to turn it, move your hand to slide it. Trigger at nothing = the old rotations (right Y, left X).</li>
+        <li><strong>🥽 VR</strong>: appears in the Meta Quest browser. The well stands in front of you; thumbstick moves, A drops, B pauses. Point the controller and pull the <strong>trigger</strong> on the piece (slide it), a ring (turn it), or the ✂ cutter (drop now). Your other hand carries the twin and its map like a small tablet: <strong>squeeze its grip and twist</strong> to turn the piece, and point the trigger hand at the map to move it. Trigger at nothing = the old rotations (right Y, left X).</li>
         <li><strong>3D Depth</strong> scales with the camera distance; lower it if your eyes strain. <strong>Focus</strong> moves the screen plane.</li>
       </ul>
       <button class="action-btn" id="closeInfoBtn">Got it</button>
@@ -280,20 +282,21 @@
   <script type="importmap">
   {
     "imports": {
-      "./js/config.js": "./js/config.js?v=2.2.1",
-      "./js/game.js": "./js/game.js?v=2.2.1",
-      "./js/renderer.js": "./js/renderer.js?v=2.2.1",
-      "./js/well.js": "./js/well.js?v=2.2.1",
-      "./js/controls.js": "./js/controls.js?v=2.2.1",
-      "./js/hud3d.js": "./js/hud3d.js?v=2.2.1",
-      "./js/audio.js": "./js/audio.js?v=2.2.1",
-      "./js/ui.js": "./js/ui.js?v=2.2.1",
-      "./js/link.js": "./js/link.js?v=2.2.1",
-      "./js/progress.js": "./js/progress.js?v=2.2.1",
-      "./js/grab.js": "./js/grab.js?v=2.2.1"
+      "./js/config.js": "./js/config.js?v=2.3.0",
+      "./js/game.js": "./js/game.js?v=2.3.0",
+      "./js/renderer.js": "./js/renderer.js?v=2.3.0",
+      "./js/well.js": "./js/well.js?v=2.3.0",
+      "./js/controls.js": "./js/controls.js?v=2.3.0",
+      "./js/hud3d.js": "./js/hud3d.js?v=2.3.0",
+      "./js/audio.js": "./js/audio.js?v=2.3.0",
+      "./js/ui.js": "./js/ui.js?v=2.3.0",
+      "./js/link.js": "./js/link.js?v=2.3.0",
+      "./js/progress.js": "./js/progress.js?v=2.3.0",
+      "./js/grab.js": "./js/grab.js?v=2.3.0",
+      "./js/twin.js": "./js/twin.js?v=2.3.0"
     }
   }
   </script>
-  <script type="module" src="./js/app.js?v=2.2.1"></script>
+  <script type="module" src="./js/app.js?v=2.3.0"></script>
 </body>
 </html>
