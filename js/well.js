@@ -8,9 +8,27 @@
    ========================================================================== */
 
 const THEMES = ['#00f0ff', '#a855f7', '#34ff9a', '#ffc93c', '#ff4fa3', '#38bdf8', '#f97316'];
-// Landing ghost: filled in the falling piece's own colour, outlined in bright white, both pulsing. A fixed
-// blue ghost vanished against the cyan / blue floor and against blocks of a similar colour.
-const GHOST_EDGE = 0xffffff;
+// Landing ghost: it must never look like a block. A single colour (the piece's, or a fixed blue) vanished
+// among blocks of that colour, so each ghost cube cycles through the rainbow (each a step apart) and carries
+// moving diagonal stripes: no block is multi-coloured or striped, so it stands out even in grey-scale.
+// Its outline is also drawn faintly through anything in front, so a landing spot down a pit still shows.
+const GHOST_HUE_SPEED = 0.35;   // rainbow turns per second
+const GHOST_HUE_STEP = 0.17;    // hue offset between the ghost's cubes
+
+/** Diagonal stripes (opaque / faint) for the ghost's faces; scrolled every frame. */
+function stripeTexture() {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 64;
+  const g = cv.getContext('2d');
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = 'rgba(255,255,255,1)';
+  for (let k = -64; k < 128; k += 32) {
+    g.beginPath(); g.moveTo(k, 0); g.lineTo(k + 14, 0); g.lineTo(k + 14 + 64, 64); g.lineTo(k + 64, 64); g.closePath(); g.fill();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
 const MAX_PIECE = 8;
 
 /** Soft studio reflections (canvas equirect -> PMREM), as in 3D Labyrinth's materials.js. */
@@ -98,8 +116,14 @@ export class WellView {
     this.gridTex = gridTexture();
     this.lockedMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.12, envMap: this.env, envMapIntensity: 0.6 });
     this.activeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0.1, envMap: this.env, envMapIntensity: 0.7, emissive: 0x000000 });
-    this.ghostMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false });
-    this.ghostEdgeMat = new THREE.LineBasicMaterial({ color: GHOST_EDGE, transparent: true, opacity: 0.95 });
+    this.ghostStripes = stripeTexture();
+    this.ghostMat = new THREE.MeshBasicMaterial({ color: 0xffffff, map: this.ghostStripes, transparent: true, opacity: 0.92, depthWrite: false });
+    this.ghostEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 });
+    // The same outline again, faint, through whatever stands in front of the landing spot
+    this.ghostXrayMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false });
+    // ... and its striped rainbow fill, fainter, over everything in front
+    this.ghostXrayFillMat = new THREE.MeshBasicMaterial({ color: 0xffffff, map: this.ghostStripes, transparent: true, opacity: 0.55,
+      depthTest: false, depthWrite: false });
     this.guideMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
     this.markerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
@@ -109,6 +133,10 @@ export class WellView {
     this.active.castShadow = false;
     this.active.count = 0;
     this.ghost = new THREE.InstancedMesh(this.boxGeo, this.ghostMat, MAX_PIECE);
+    // instanceColor must exist before the first render, and r128 sizes it by the count at that moment:
+    // fill it while count is still MAX_PIECE
+    const white = new THREE.Color(1, 1, 1);
+    for (let i = 0; i < MAX_PIECE; i++) this.ghost.setColorAt(i, white);
     this.ghost.count = 0;
     this.ghost.renderOrder = 5;
 
@@ -124,7 +152,17 @@ export class WellView {
     for (const o of [this.ghostEdges, this.guides]) o.frustumCulled = false;
     this.bomb = this.makeBomb();
     this.ghostEdges.renderOrder = 6;
-    this.well.add(this.active, this.ghost, this.ghostEdges, this.guides, this.markers, this.bomb);
+    this.ghostXray = new THREE.LineSegments(this.ghostEdges.geometry, this.ghostXrayMat); // shares the edges (and their draw range)
+    this.ghostXray.renderOrder = 8;
+    this.ghostXray.frustumCulled = false;
+    this.ghostXrayFill = new THREE.InstancedMesh(this.boxGeo, this.ghostXrayFillMat, MAX_PIECE);
+    this.ghostXrayFill.instanceMatrix = this.ghost.instanceMatrix;   // same cubes as the ghost
+    this.ghostXrayFill.instanceColor = this.ghost.instanceColor;     // same rainbow
+    this.ghostXrayFill.count = 0;
+    this.ghostXrayFill.renderOrder = 7;
+    this.ghostXrayFill.frustumCulled = false;
+    this.well.add(this.ghostXrayFill);
+    this.well.add(this.active, this.ghost, this.ghostEdges, this.ghostXray, this.guides, this.markers, this.bomb);
 
     this.effects = [];
     this.disposables = [];
@@ -277,8 +315,7 @@ export class WellView {
     // Ghost: only when the piece is above its landing spot
     const dropped = landing && cells.length && landing[0].y !== cells[0].y;
     const ghost = this.showGhost && dropped ? landing : [];
-    this.ghost.count = ghost.length;
-    if (color) this.ghostMat.color.set(color);
+    this.ghost.count = this.ghostXrayFill.count = ghost.length;
     const ep = this.ghostEdges.geometry.attributes.position, h = 0.49;
     let e = 0;
     ghost.forEach((c, i) => {
@@ -411,9 +448,17 @@ export class WellView {
     if (this.activeColor) this.activeMat.emissive.copy(this.activeColor).multiplyScalar(gravityOn ? 0.18 : 0.18 + 0.14 * (1 + Math.sin(this.elapsed * 5)));
     if (this.bomb.visible) { this.spark.scale.setScalar(0.8 + Math.random() * 0.7); this.bomb.rotation.y += dt; }
     const beat = 0.5 + 0.5 * Math.sin(this.elapsed * 5);
-    this.markerMat.opacity = 0.45 + beat * 0.45;
-    this.ghostMat.opacity = 0.32 + beat * 0.2;
-    this.ghostEdgeMat.opacity = 0.7 + beat * 0.3;
+    this.markerMat.opacity = 0.5 + beat * 0.45;
+    // Rainbow ghost: every cube a different hue, all turning; stripes marching along the faces
+    if (this.ghost.count) {
+      const hue = (this.elapsed * GHOST_HUE_SPEED) % 1, c = new THREE.Color();
+      for (let i = 0; i < this.ghost.count; i++) this.ghost.setColorAt(i, c.setHSL((hue + i * GHOST_HUE_STEP) % 1, 1, 0.55));
+      this.ghost.instanceColor.needsUpdate = true;
+      this.ghostStripes.offset.x = (this.elapsed * 0.6) % 1;
+      this.ghostEdgeMat.color.setHSL((hue + 0.5) % 1, 1, 0.75); // outline: the opposite hue, so edge and fill always differ
+      this.ghostXrayMat.color.copy(this.ghostEdgeMat.color);
+      this.markerMat.color.setHSL(hue, 1, 0.7);
+    }
 
     for (let i = this.effects.length - 1; i >= 0; i--) {
       const e = this.effects[i];
