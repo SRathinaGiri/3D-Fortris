@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Fortris3D">
-  <link rel="stylesheet" href="./css/styles.css?v=2.1.0">
+  <link rel="stylesheet" href="./css/styles.css?v=2.1.1">
   <!-- Three.js r128, bundled locally so the PWA works fully offline -->
   <script src="./js/lib/three.min.js"></script>
   <!-- PeerJS 1.5.5 (MIT, bundled locally): phone-controller pairing only. See js/lib/peerjs.LICENSE.txt -->
@@ -33,7 +33,7 @@
           </g>
         </svg>
         <span>3D Fortris</span>
-        <span class="version-badge">v2.1.0</span>
+        <span class="version-badge">v2.1.1</span>
       </div>
       <div class="header-controls">
         <button class="icon-btn install-btn" id="installBtn" style="display:none" title="Install as an app on this device">📲 Install app</button>
@@ -209,7 +209,7 @@
       <ul>
         <li>Pieces fall inside a <strong>3D well</strong>. Fill every cell of a horizontal layer to clear it: 100 points × your level per layer.</li>
         <li>A new piece <strong>waits at the top</strong>, tied by a rope to the post at the near corner (⏸ HOLD on the bar), so you can line it up. <strong>Cut the rope</strong> (tap it, or the ✂ post) or press <strong>DROP</strong> (<kbd>Space</kbd>) to release it; the post then shows ⤓: tap it (or DROP again) to slam the piece down.</li>
-        <li><strong>Touch the piece</strong>: drag it to slide it across the well, tap it to show the rings (red X, green Y, blue Z) and drag along a ring to turn it. A glowing cursor shows both eyes where you point, so this works in Cross-Eye and Parallel 3D.</li>
+        <li><strong>Touch the piece</strong>: drag it to slide it across the well, tap it to show the rings (red X, green Y, blue Z) and drag along a ring to turn it. You can still slide it with the rings showing; tap the piece, a ring or empty space to hide them. A glowing cursor shows both eyes where you point, so this works in Cross-Eye and Parallel 3D.</li>
         <li>The <strong>ghost</strong> and the floor markers show where the piece will land; the thin lines drop from each column.</li>
         <li><strong>Arrows follow the camera</strong>: ▲ always moves the piece away from you. Turn the view with ↶ ↷ (<kbd>V</kbd>), look straight down with ⊡ (<kbd>T</kbd>), or drag to orbit.</li>
         <li>💣 <strong>Bomb</strong>: blows away the block it lands on (+50).</li>
@@ -279,20 +279,20 @@
   <script type="importmap">
   {
     "imports": {
-      "./js/config.js": "./js/config.js?v=2.1.0",
-      "./js/game.js": "./js/game.js?v=2.1.0",
-      "./js/renderer.js": "./js/renderer.js?v=2.1.0",
-      "./js/well.js": "./js/well.js?v=2.1.0",
-      "./js/controls.js": "./js/controls.js?v=2.1.0",
-      "./js/hud3d.js": "./js/hud3d.js?v=2.1.0",
-      "./js/audio.js": "./js/audio.js?v=2.1.0",
-      "./js/ui.js": "./js/ui.js?v=2.1.0",
-      "./js/link.js": "./js/link.js?v=2.1.0",
-      "./js/progress.js": "./js/progress.js?v=2.1.0",
-      "./js/grab.js": "./js/grab.js?v=2.1.0"
+      "./js/config.js": "./js/config.js?v=2.1.1",
+      "./js/game.js": "./js/game.js?v=2.1.1",
+      "./js/renderer.js": "./js/renderer.js?v=2.1.1",
+      "./js/well.js": "./js/well.js?v=2.1.1",
+      "./js/controls.js": "./js/controls.js?v=2.1.1",
+      "./js/hud3d.js": "./js/hud3d.js?v=2.1.1",
+      "./js/audio.js": "./js/audio.js?v=2.1.1",
+      "./js/ui.js": "./js/ui.js?v=2.1.1",
+      "./js/link.js": "./js/link.js?v=2.1.1",
+      "./js/progress.js": "./js/progress.js?v=2.1.1",
+      "./js/grab.js": "./js/grab.js?v=2.1.1"
     }
   }
   </script>
-  <script type="module" src="./js/app.js?v=2.1.0"></script>
+  <script type="module" src="./js/app.js?v=2.1.1"></script>
 </body>
 </html>

@@ -4,7 +4,8 @@
    (the HTML touch pad sits at screen depth and never fuses in cross / parallel
    view):
      - the piece itself: drag it to move it across the well, tap it for the
-       rotation rings (red X, green Y, blue Z), drag along a ring to turn it 90°
+       rotation rings (red X, green Y, blue Z), drag along a ring to turn it 90°;
+       tap the piece, a ring or empty space to put the rings away again
      - a rope ties the waiting piece to a post at the near corner of the well:
        tap the rope or the post's ✂ button to cut it and release the piece;
        while it falls the post shows ⤓, tap it for a hard drop
@@ -292,7 +293,12 @@ export class GrabControls {
     const ray = this.toLocalRay(wr);
     const hit = this.pick(ray);
     this.showCursorOnRay(ray, wr, cam, hit);
-    if (!hit) { if (e.pointerType !== 'mouse') this.cursorAt.until = this.elapsed + 0.25; return false; }
+    if (!hit) {
+      if (e.pointerType !== 'mouse') this.cursorAt.until = this.elapsed + 0.25;
+      // Not ours (a drag here orbits the camera), but a plain tap on empty space puts the rings away
+      if (this.ringsOn && this.active) this.emptyTap = { id: e.pointerId, start: new THREE.Vector2(e.clientX, e.clientY), t0: performance.now(), moved: 0 };
+      return false;
+    }
     this.app.audio.ensureContext();
     try { e.currentTarget && e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { /* gone */ }
     if (hit.kind === 'post') { this.pressPost(); this.drag = { id: e.pointerId, kind: 'done' }; return true; }
@@ -305,7 +311,7 @@ export class GrabControls {
       const c = this.toScreen(hit.centre, cam, view);
       const toCam = cam.getWorldPosition(new THREE.Vector3());
       this.app.well.well.worldToLocal(toCam).sub(hit.centre);
-      this.drag = { id: e.pointerId, kind: 'ring', axis: hit.axis, radius: hit.radius, start, last: start.clone(), acc: 0,
+      this.drag = { id: e.pointerId, kind: 'ring', axis: hit.axis, radius: hit.radius, start, t0: performance.now(), last: start.clone(), acc: 0, turned: false,
         tan: b.sub(a), centre2: c, facing: Math.sign(toCam.dot(AXES[hit.axis])) || 1, moved: 0 };
       this.ringMeshes[hit.axis].material.opacity = 1;
       return true;
@@ -321,6 +327,7 @@ export class GrabControls {
 
   onPointerMove(e) {
     const d = this.drag;
+    if (this.emptyTap && this.emptyTap.id === e.pointerId) this.emptyTap.moved = Math.max(this.emptyTap.moved, this.emptyTap.start.distanceTo(new THREE.Vector2(e.clientX, e.clientY)));
     if (!d || d.id !== e.pointerId) {
       // Hover: the 3D cursor follows the mouse (in SBS the OS pointer only shows in one half)
       if (!this.drag && e.pointerType === 'mouse' && this.app.state === 'PLAYING' && !this.app.inVR) {
@@ -355,6 +362,7 @@ export class GrabControls {
         const dir = Math.sign(d.acc);
         d.acc -= dir * RING_STEP;
         this.rotate(d.axis, dir);
+        d.turned = true;
       }
     } else if (d.kind === 'move') {
       const v = p.clone().sub(d.start);
@@ -364,9 +372,18 @@ export class GrabControls {
   }
 
   onPointerUp(e) {
+    const et = this.emptyTap;
+    if (et && et.id === e.pointerId) {
+      this.emptyTap = null;
+      if (et.moved < TAP_PX && performance.now() - et.t0 < TAP_MS && this.ringsOn) this.toggleRings();
+    }
     const d = this.drag;
     if (!d || d.id !== e.pointerId) return;
-    if (d.kind === 'move' && d.moved < TAP_PX && performance.now() - d.t0 < TAP_MS && !d.done.x && !d.done.z) this.toggleRings();
+    const tap = d.moved < TAP_PX && performance.now() - d.t0 < TAP_MS;
+    // A tap on the piece shows / hides the rings; a tap on a ring (no turn) hides them too:
+    // the rings cross in front of the piece, so "tap the piece again" often lands on one
+    if (tap && d.kind === 'move' && !d.done.x && !d.done.z) this.toggleRings();
+    if (tap && d.kind === 'ring' && !d.turned && this.ringsOn) this.toggleRings();
     if (d.kind === 'ring') this.ringMeshes[d.axis].material.opacity = 0.55;
     this.drag = null;
     if (e.pointerType !== 'mouse') this.hideCursor(0.25);
@@ -513,11 +530,12 @@ export class GrabControls {
 
       // Trigger: press = tap on what the ray points at; hold on the piece / a ring = drag
       if (trig && !s.trig && !this.app.controls.menuMode) {
-        if (!play || !hit) this.app.controls.fire(hand === 'R' ? 'rotY' : 'rotX', 'vr'); // pointing at nothing: the old trigger rotations
+        if (play && !hit && this.ringsOn) this.toggleRings();                           // pointing at nothing with the rings up: put them away
+        else if (!play || !hit) this.app.controls.fire(hand === 'R' ? 'rotY' : 'rotX', 'vr'); // pointing at nothing: the old trigger rotations
         else if (hit.kind === 'post') { this.pressPost(); pulse(0.6, 30); }
         else if (hit.kind === 'rope') { this.cutRope(hit.point); pulse(0.8, 40); }
         else if (hit.kind === 'ring') {
-          s.drag = { kind: 'ring', axis: hit.axis, centre: hit.centre, last: this.ringAngle(hit.axis, hit.point.clone().sub(hit.centre)), acc: 0 };
+          s.drag = { kind: 'ring', axis: hit.axis, centre: hit.centre, last: this.ringAngle(hit.axis, hit.point.clone().sub(hit.centre)), acc: 0, turned: false, t0: performance.now() };
           this.ringMeshes[hit.axis].material.opacity = 1;
         } else if (hit.kind === 'piece') {
           s.drag = { kind: 'move', plane: new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.centre.y), from: hit.point.clone(), t0: performance.now(), done: { x: 0, z: 0 }, bumped: false, moved: 0 };
@@ -531,7 +549,7 @@ export class GrabControls {
             const ang = this.ringAngle(d.axis, p.sub(d.centre));
             let da = ang - d.last; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
             d.last = ang; d.acc += da;
-            while (Math.abs(d.acc) >= Math.PI / 4) { const sg = Math.sign(d.acc); d.acc -= sg * Math.PI / 2; if (this.rotate(d.axis, sg)) pulse(0.5, 25); }
+            while (Math.abs(d.acc) >= Math.PI / 4) { const sg = Math.sign(d.acc); d.acc -= sg * Math.PI / 2; d.turned = true; if (this.rotate(d.axis, sg)) pulse(0.5, 25); }
             s.cursor.position.copy(this.ringPoint(d.axis, d.centre, this.ringRadius(this.pieceInfo() || { half: new THREE.Vector3() }, d.axis), ang));
           }
         } else if (d.kind === 'move') {
@@ -545,7 +563,10 @@ export class GrabControls {
       }
       if (!trig && s.trig && s.drag) {
         if (s.drag.kind === 'move' && s.drag.moved < 0.3 && performance.now() - s.drag.t0 < TAP_MS && !s.drag.done.x && !s.drag.done.z) this.toggleRings();
-        if (s.drag.kind === 'ring') this.ringMeshes[s.drag.axis].material.opacity = 0.55;
+        if (s.drag.kind === 'ring') {
+          if (!s.drag.turned && performance.now() - s.drag.t0 < TAP_MS && this.ringsOn) this.toggleRings();
+          this.ringMeshes[s.drag.axis].material.opacity = 0.55;
+        }
         s.drag = null;
       }
       s.trig = trig;
@@ -721,7 +742,7 @@ export class GrabControls {
 
   /** A new game: forget drags, cut animations and the post's corner. */
   reset() {
-    this.drag = null; this.hover = null; this.cursorAt = null; this.cutAt = null;
+    this.drag = null; this.hover = null; this.cursorAt = null; this.cutAt = null; this.emptyTap = null;
     this.disposeCut();
     this.post.ready = false; this.post.corner = null;
     this.ropeKey = ''; this.ropePts = [];

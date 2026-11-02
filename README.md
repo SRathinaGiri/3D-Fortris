@@ -33,7 +33,7 @@ Small additions: E / D / S rotate the other way round, Restart mid-game asks fir
 
 ### In-scene controls (v2.1)
 The flat touch pad sits at screen depth, so it never fuses in Cross-Eye / Parallel view. The controls now live **inside the 3D scene** (`js/grab.js`):
-- **The piece**: drag it to slide it, cell by cell, across the well. Tap it to show the **rotation rings**; drag along a ring and the piece turns 90° every ~57° of drag. The rings stay on for the next pieces until you tap a piece again.
+- **The piece**: drag it to slide it, cell by cell, across the well. Tap it to show the **rotation rings**; drag along a ring and the piece turns 90° every ~57° of drag. You can still drag the piece to slide it while the rings show. To put them away, tap the piece again, tap a ring without dragging, or tap empty space (a drag on empty space still orbits). They stay on for the next pieces until you put them away.
 - **The rope and post**: a waiting piece hangs on a rope from a post at the well corner nearest you. Tap the rope (or the ✂ button) to **cut it**: the rope snaps and the piece falls. While it falls the button shows **⤓**: tap it for a hard drop. DROP / Space still work and snap the rope too.
 - **3D cursor**: a glowing dot at the pointer, drawn for both eyes so it fuses. Over a side-by-side view the OS pointer is hidden (it only exists in one half).
 - **Per-eye picking**: a touch in either half of a side-by-side view is cast from *that* eye's camera (left / right, cross and swap respected), so a piece in front of or behind the screen plane is hit where you see it.
