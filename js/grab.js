@@ -729,6 +729,15 @@ export class GrabControls {
       const hand = src.handedness === 'left' ? 'L' : 'R';
       const trig = b(0), grip = b(1);
 
+      // VR rig first: place-well mode owns both hands; the ☰ button beside the score opens the menu
+      const rig = this.app.vrrig;
+      if (rig.adjusting) { s.cursor.visible = false; s.line.visible = true; s.line.scale.z = 3; s.trig = trig; s.grip = grip; return; }
+      if (rig.hitMenu(new THREE.Ray(origin, dir))) {
+        s.line.material.color.set(0xffd34d); s.cursor.visible = false;
+        if (trig && !s.trig) rig.pressMenu();
+        s.trig = trig; s.grip = grip;
+        return;
+      }
       // Orientation picker open: the trigger picks a tile (or closes it, pointing elsewhere)
       if (this.app.picker.open && s.hand && !offHand) {
         const ph = this.app.picker.hit(new THREE.Ray(origin, dir));
@@ -812,7 +821,7 @@ export class GrabControls {
 
       // Grip: hold the piece like a real block and twist the wrist 90° to turn it. (Sliding by moving the hand
       // is gone: the piece falls while you hold it, so the hand chased it and overshot. Move with the twin's map.)
-      if (grip && !s.grip && play && !this.app.controls.menuMode) {
+      if (grip && !s.grip && play && !this.app.controls.menuMode && !this.app.vrrig.ownsGrip(s.hand)) {
         s.twist = { q0: ctrl.getWorldQuaternion(new THREE.Quaternion()), p0: well.worldToLocal(origin.clone()) };
         pulse(0.4, 20);
       }

@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Fortris3D">
-  <link rel="stylesheet" href="./css/styles.css?v=2.6.0">
+  <link rel="stylesheet" href="./css/styles.css?v=2.7.0">
   <!-- Three.js r128, bundled locally so the PWA works fully offline -->
   <script src="./js/lib/three.min.js"></script>
   <!-- PeerJS 1.5.5 (MIT, bundled locally): phone-controller pairing only. See js/lib/peerjs.LICENSE.txt -->
@@ -33,7 +33,7 @@
           </g>
         </svg>
         <span>3D Fortris</span>
-        <span class="version-badge">v2.6.0</span>
+        <span class="version-badge">v2.7.0</span>
       </div>
       <div class="header-controls">
         <button class="icon-btn install-btn" id="installBtn" style="display:none" title="Install as an app on this device">📲 Install app</button>
@@ -71,6 +71,7 @@
         <div class="row-wrap">
           <button class="icon-btn" id="autoRotateBtn" title="Slowly orbit the camera around the well">🔄 Auto-rotate camera: ON</button>
           <button class="icon-btn" id="padModeBtn" title="On-screen arrows, rotations and DROP (Auto = touch screens only)">🕹 Touch pad: Auto</button>
+          <button class="icon-btn" id="vrHandBtn" title="Meta Quest: this hand's stick moves the piece; the other hand's stick and grip move the well">🥽 Quest: right stick moves the piece</button>
           <button class="icon-btn" id="handBtn" title="Side for the twin piece and floor map you steer with (Quest: the other hand carries them)">✋ Twin + map: off</button>
           <button class="icon-btn" id="phonePadBtn" title="Use a phone on the same Wi-Fi as a controller (e.g. for a TV or smart glasses)">📲 Phone controller</button>
         </div>
@@ -226,7 +227,7 @@
         <li><strong>Cross-Eye 3D</strong>: cross your eyes until a third image fuses in the middle.</li>
         <li><strong>Anaglyph</strong>: red/cyan glasses.</li>
         <li><strong>Smart Glasses (HSBS)</strong>: 16:9 half side-by-side for RayNeo Air, XREAL, Rokid, TCL — switch the glasses to 3D SBS mode.</li>
-        <li><strong>🥽 VR</strong>: appears in the Meta Quest browser. The well stands in front of you; thumbstick moves, A drops, B pauses. Point the controller and pull the <strong>trigger</strong> on the piece (slide it), a ring (turn it), or the ✂ cutter (drop now). Your other hand carries the twin and its map like a small tablet: <strong>squeeze its grip and twist</strong> to turn the piece, and point the trigger hand at the map to move it. Trigger at nothing = the old rotations (right Y, left X).</li>
+        <li><strong>🥽 VR</strong>: appears in the Meta Quest browser. The <strong>right stick</strong> moves the piece (Controls → 🥽 swaps hands); point and pull the <strong>trigger</strong> to drag the piece, click it to pick a turn, or click the ✂ cutter. The <strong>other stick</strong> turns the well and moves it nearer / farther; <strong>squeeze that hand's grip</strong> to carry the well, <strong>both grips</strong> to resize it. <strong>☰</strong> beside the score (or B / Y) opens the menu: Resume, 📐 Place well, Recenter, Table / Giant, Restart, <strong>⏏ Exit VR</strong>. Your placement is remembered.</li>
         <li><strong>3D Depth</strong> scales with the camera distance; lower it if your eyes strain. <strong>Focus</strong> moves the screen plane.</li>
       </ul>
       <button class="action-btn" id="closeInfoBtn">Got it</button>
@@ -282,22 +283,23 @@
   <script type="importmap">
   {
     "imports": {
-      "./js/config.js": "./js/config.js?v=2.6.0",
-      "./js/game.js": "./js/game.js?v=2.6.0",
-      "./js/renderer.js": "./js/renderer.js?v=2.6.0",
-      "./js/well.js": "./js/well.js?v=2.6.0",
-      "./js/controls.js": "./js/controls.js?v=2.6.0",
-      "./js/hud3d.js": "./js/hud3d.js?v=2.6.0",
-      "./js/audio.js": "./js/audio.js?v=2.6.0",
-      "./js/ui.js": "./js/ui.js?v=2.6.0",
-      "./js/link.js": "./js/link.js?v=2.6.0",
-      "./js/progress.js": "./js/progress.js?v=2.6.0",
-      "./js/grab.js": "./js/grab.js?v=2.6.0",
-      "./js/twin.js": "./js/twin.js?v=2.6.0",
-      "./js/picker.js": "./js/picker.js?v=2.6.0"
+      "./js/config.js": "./js/config.js?v=2.7.0",
+      "./js/game.js": "./js/game.js?v=2.7.0",
+      "./js/renderer.js": "./js/renderer.js?v=2.7.0",
+      "./js/well.js": "./js/well.js?v=2.7.0",
+      "./js/controls.js": "./js/controls.js?v=2.7.0",
+      "./js/hud3d.js": "./js/hud3d.js?v=2.7.0",
+      "./js/audio.js": "./js/audio.js?v=2.7.0",
+      "./js/ui.js": "./js/ui.js?v=2.7.0",
+      "./js/link.js": "./js/link.js?v=2.7.0",
+      "./js/progress.js": "./js/progress.js?v=2.7.0",
+      "./js/grab.js": "./js/grab.js?v=2.7.0",
+      "./js/twin.js": "./js/twin.js?v=2.7.0",
+      "./js/picker.js": "./js/picker.js?v=2.7.0",
+      "./js/vrrig.js": "./js/vrrig.js?v=2.7.0"
     }
   }
   </script>
-  <script type="module" src="./js/app.js?v=2.6.0"></script>
+  <script type="module" src="./js/app.js?v=2.7.0"></script>
 </body>
 </html>

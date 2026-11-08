@@ -52,7 +52,11 @@ Moves are relative to the camera: ↑ always means "away from you".
 
 - **2D**, **Parallel** and **Cross-eye** side-by-side, **Anaglyph** (red/cyan glasses), and **Smart glasses** half-SBS (RayNeo, XREAL, Rokid, TCL).
 - The depth adjusts itself with the camera distance, and the score panels float inside the 3D scene, so they read correctly in every mode.
-- **Meta Quest (WebXR):** tap **🥽 VR** in the Quest browser. Point and pull the **trigger** to drag or turn the piece, or pull it on the ✂ cutter to drop. **Squeeze the grip** and twist your wrist to turn the piece. Choose **🪑 Table** (a 70 cm tower in front of you) or **🏙 Giant** (2.6 m, on the floor).
+- **Meta Quest (WebXR):** tap **🥽 VR** in the Quest browser. The well appears about a metre in front of you, its floor below your eyes, so you look down into it.
+  - **Play:** the **right stick** moves the piece (left-handed: menu → Controls → 🥽 swaps the hands). Point and pull the **trigger**: drag on the piece to slide it, click it to pick a turn, click the ✂ cutter to drop. **A / X** drops too.
+  - **Move the well while you play:** the **other stick** turns the well (left / right) and pushes it away or pulls it closer (forward / back). **Squeeze that hand's grip** to grab the well and carry it with your hand; **squeeze both grips** and pull your hands apart or together to make it bigger or smaller.
+  - **Menu:** point at the **☰** beside the score and pull the trigger (or press **B / Y**): ▶ Resume · 📐 Place well (the game waits; both grips and sticks move it; trigger or ✔ when done) · 🎯 Recenter (in front of where you look now) · 🪑 Table / 🏙 Giant presets · ↻ Restart · ⏏ **Exit VR**. Point at a panel button and pull the trigger.
+  - Your placement is remembered for next time. The Quest's own Meta button also leaves VR at any time.
 
 ## 📲 Phone as controller
 
@@ -111,6 +115,7 @@ js/well.js      three.js scene: well, blocks, ghost, effects
 js/renderer.js  stereo engine (shared with 3D Labyrinth)
 js/hud3d.js     in-scene HUD, NEXT / LAYERS panels, 3D dialogs
 js/controls.js  keyboard / gamepad / Quest / orbit input
+js/vrrig.js     Quest: where the well stands (move / turn / resize, presets), ☰ menu button, pointing at panels
 js/grab.js      in-scene controls: piece drag, pulley + rope + countdown, ✂ cutter, 3D cursor, Quest grab
 js/picker.js    orientation picker (every turn of the piece, tap one)
 js/twin.js      optional twin piece + floor map

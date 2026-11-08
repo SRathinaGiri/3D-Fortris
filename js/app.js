@@ -15,6 +15,7 @@ import { TVLink } from './link.js';
 import { GrabControls, snapAxis, CEILING_FIT, CUTTER_OUT } from './grab.js';
 import { TwinControl } from './twin.js';
 import { OrientationPicker } from './picker.js';
+import { VRRig, VR_PRESETS } from './vrrig.js';
 import { PROGRESS_KEY, loadProgress, saveProgress, parseProgress, mergeProgress, addScore } from './progress.js';
 
 // Buttons the phone controller may press (anything else on the data channel is ignored)
@@ -38,7 +39,8 @@ class GameApp {
     this.depth = 1.0;
     this.focusOffset = 0;
     this.progress = loadProgress();
-    this.settings = { opacity: 0.85, autoRotate: true, ghost: true, guides: true, panels: true, pad: 'auto', twin: 'off' };
+    this.settings = { opacity: 0.85, autoRotate: true, ghost: true, guides: true, panels: true, pad: 'auto', twin: 'off',
+      vrHand: 'right', vrPlace: { mode: 'table', ...VR_PRESETS.table, turn: 0 } }; // Quest: the hand whose stick moves the piece; where the well stands
     this.orbit = { theta: CAMERA.THETA, phi: CAMERA.PHI, zoom: 1, target: null, top: false, camPhi: CAMERA.PHI };
     this.vr = { mode: 'table', pending: false, frames: 0, head: null, fwd: null, yaw: 0, turn: 0 };
     this.vrHud = new THREE.Group();
@@ -63,6 +65,7 @@ class GameApp {
     this.grab.bind(document.getElementById('viewportFrame'));
     this.twin = new TwinControl(this); // still copy of the piece + floor map, to steer a falling piece
     this.twin.bind(document.getElementById('viewportFrame'));
+    this.vrrig = new VRRig(this);
     this.picker = new OrientationPicker(this); // ROTATE mode, tap the piece: every orientation to choose from
     this.bindDialogPointer();
 
@@ -130,6 +133,7 @@ class GameApp {
       this.saveGame();
       this.openPauseDialog();
     } else if (this.state === 'PAUSED') {
+      this.vrrig.endAdjust();
       this.state = 'PLAYING';
       this.closeDialog();
       this.ui.hideModals();
@@ -142,9 +146,10 @@ class GameApp {
     const g = this.game;
     const lines = [`Level ${g.level} · ★ ${g.score.toLocaleString()} · ${g.lines} layers`];
     if (this.inVR) {
-      lines.push('Thumbstick to choose · trigger or A to select');
-      this.openDialog({ title: 'PAUSED', color: '#00f0ff', lines, buttons: [{ id: 'resume', label: '▶ Resume' }, { id: 'restart', label: '↻ Restart' },
-        { id: 'recenter', label: '🎯 Recenter' }, { id: 'vrsize', label: this.vr.mode === 'table' ? '🏙 Giant' : '🪑 Table' }, { id: 'exitvr', label: '⏏ Exit VR' }] });
+      lines.push('Point and pull the trigger · B / Y = back to the game');
+      const giant = this.settings.vrPlace.mode === 'giant';
+      this.openDialog({ title: 'PAUSED', color: '#00f0ff', lines, buttons: [{ id: 'resume', label: '▶ Resume' }, { id: 'place', label: '📐 Place well' },
+        { id: 'recenter', label: '🎯 Recenter' }, { id: 'vrsize', label: giant ? '🪑 Table' : '🏙 Giant' }, { id: 'restart', label: '↻ Restart' }, { id: 'exitvr', label: '⏏ Exit VR' }] });
       return;
     }
     if (this.orientStatus) lines.push(this.orientStatus);
@@ -338,7 +343,8 @@ class GameApp {
       case 'menu': if (this.inVR) this.exitVR(); this.stopGame(); break;
       case 'settings': this.ui.showModal('pauseScreen'); break; // sliders need a real 2D form
       case 'recenter': this.placeVR(); this.togglePause(); break;
-      case 'vrsize': this.vr.mode = this.vr.mode === 'table' ? 'giant' : 'table'; this.placeVR(); this.togglePause(); break;
+      case 'vrsize': this.vrrig.preset(this.settings.vrPlace.mode === 'giant' ? 'table' : 'giant'); this.placeVR(); this.togglePause(); break;
+      case 'place': this.closeDialog(); this.vrrig.startAdjust(); break; // stays PAUSED: the game waits while you place it
       case 'exitvr': this.exitVR(); break;
     }
   }
@@ -377,7 +383,7 @@ class GameApp {
   /** Quarter turn of the view (flat: the camera orbits; VR: the well turns in front of you). */
   turnView(dir) {
     this.audio.playTick();
-    if (this.inVR) { this.vr.turn += dir * HALF_PI; this.applyVR(); return; }
+    if (this.inVR) { this.settings.vrPlace.turn += dir * HALF_PI; this.applyVR(); this.vrrig.save(); return; }
     const o = this.orbit, off = CAMERA.SNAP_OFFSET;
     const from = o.target ?? o.theta;
     o.target = Math.round((from - off) / HALF_PI) * HALF_PI + off - dir * HALF_PI;
@@ -539,9 +545,15 @@ class GameApp {
 
     const xr = this.renderer.renderer.xr;
     if (xr.isPresenting) {
+      this.controls.xrPieceHand = this.settings.vrHand === 'left' ? 'left' : 'right';
       this.controls.pollXR(xr.getSession(), dt);
+      this.vrrig.poll(xr.getSession(), dt);
       this.grab.pollXR(xr.getSession());
-      if (this.vr.pending && ++this.vr.frames > 3) this.placeVR(); // the head pose is known after a few XR frames
+      // Place the well once the head pose is real (it reads as the origin for the first frames)
+      if (this.vr.pending && ++this.vr.frames > 10 && (this.renderer.mainCamera.position.lengthSq() > 0.01 || this.vr.frames > 120)) {
+        this.placeVR();
+        this.hud.showBanner('🥽 VR', '☰ beside the score (or B / Y) = menu · other hand\'s stick / grip moves the well', '#00f0ff', 4);
+      }
       this.hud.layout(VR.HUD.DIST, VR.HUD.FOV, VR.HUD.ASPECT);
     }
     this.controls.pollGamepads(dt);
@@ -610,23 +622,7 @@ class GameApp {
     this.applyVR();
   }
 
-  applyVR() {
-    const v = this.vr;
-    if (!v.head) return;
-    const { H } = this.well.extent, w = this.well.world;
-    if (v.mode === 'table') {
-      w.scale.setScalar(VR.TABLE.HEIGHT / H);
-      w.position.copy(v.head).addScaledVector(v.fwd, VR.TABLE.DIST);
-      w.position.y = v.head.y - VR.TABLE.BELOW_EYES;
-    } else {
-      // local-floor puts the real floor at y = 0; if the headset gave no floor, assume a standing eye height
-      const floorY = v.head.y > 0.8 ? 0 : v.head.y - VR.GIANT.STAND_EYE;
-      w.scale.setScalar(VR.GIANT.HEIGHT / H);
-      w.position.copy(v.head).addScaledVector(v.fwd, VR.GIANT.DIST);
-      w.position.y = floorY;
-    }
-    w.rotation.set(0, v.yaw + v.turn, 0);
-  }
+  applyVR() { this.vrrig.apply(); }
 
   exitVR() {
     const session = this.renderer.renderer.xr.getSession();
@@ -641,6 +637,7 @@ class GameApp {
     w.scale.setScalar(1); w.position.set(0, 0, 0); w.rotation.set(0, 0, 0);
     this.hud.attachTo(this.renderer.mainCamera);
     this.vr.pending = false; this.vr.head = null;
+    this.vrrig.onExit();
     if (this.state === 'PLAYING') this.togglePause(); // back on the flat screen: give the player a moment
   }
 

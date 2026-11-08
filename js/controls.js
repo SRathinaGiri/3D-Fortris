@@ -175,7 +175,9 @@ export class ControlsHandler {
       const hand = src.handedness === 'left' ? 'L' : 'R';
       const ax = gp.axes || [];
       const [x, y] = (ax.length >= 4 && Math.hypot(ax[2], ax[3]) > 0.2) ? [ax[2], ax[3]] : [ax[0] || 0, ax[1] || 0];
-      if (Math.hypot(x, y) > 0.6) dir = Math.abs(x) > Math.abs(y) ? (x > 0 ? 'right' : 'left') : (y > 0 ? 'down' : 'up');
+      // Only the piece hand's stick moves the piece (the other one moves the well, vrrig.js); either walks a panel
+      const pieceStick = this.menuMode || !this.xrPieceHand || !src.handedness || src.handedness === this.xrPieceHand;
+      if (pieceStick && Math.hypot(x, y) > 0.6) dir = Math.abs(x) > Math.abs(y) ? (x > 0 ? 'right' : 'left') : (y > 0 ? 'down' : 'up');
       const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
       this.edge(`xr${hand}0`, b(0), this.menuMode ? 'confirm' : null, 'vr');
       this.edge(`xr${hand}4`, b(4), 'drop', 'vr');
